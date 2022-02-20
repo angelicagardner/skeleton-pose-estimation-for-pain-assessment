@@ -3,6 +3,7 @@ README.md
 pyproject.toml
 setup.py
 src/__init__.py
+src/run.py
 src.egg-info/PKG-INFO
 src.egg-info/SOURCES.txt
 src.egg-info/dependency_links.txt
