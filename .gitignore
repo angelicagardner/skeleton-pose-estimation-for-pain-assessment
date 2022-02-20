@@ -90,3 +90,4 @@ target/
 /data
 
 /models/OpenFace
+/models/openpose
