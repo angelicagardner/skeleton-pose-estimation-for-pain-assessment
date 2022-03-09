@@ -7,6 +7,7 @@ warnings.filterwarnings("ignore")
 
 
 def main(input_filepath, output_filepath, id):
+    FRAMES_LENGTH = 350
     root_dir = Path(__file__).parent.parent.parent
     data_dir = root_dir / 'data'
     input_filepath = data_dir / input_filepath
@@ -14,22 +15,36 @@ def main(input_filepath, output_filepath, id):
     # 1. Read ground truth data
     ground_truth_file = input_filepath / 'movement_pain.csv'
     ground_truth = pd.read_csv(ground_truth_file, sep=';')
-    frame_amount = 350
     for index, row in ground_truth.iterrows():
         # 2. Read Skeleton data
         for folder in input_filepath.iterdir():
             if str(folder.name) == row['scan_id']:
                 df = pd.read_csv(folder / 'skeleton.csv')
-                df['pain_level'] = row['pain_area'] + \
-                    ' - Level ' + str(row['level'])
-                # 3. Match the frame numbers
-                if df.shape[0] < frame_amount:
+                # 3. Gather pain areas into 8 classes
+                if 'Knee' in row['pain_area'] or 'Shin' in row['pain_area'] or 'Hip' in row['pain_area'] or 'Gluteus' in row['pain_area'] or 'Thigh' in row['pain_area'] or 'Hamstrings' in row['pain_area'] or 'Calf' in row['pain_area']:
+                    df['pain_level'] = 'LowerBodyPain'
+                elif 'Shoulder' in row['pain_area'] or 'Arm' in row['pain_area'] or 'Chest' in row['pain_area']:
+                    df['pain_level'] = 'UpperBodyPain'
+                elif 'LowerBack' in row['pain_area'] or 'MidBack' in row['pain_area']:
+                    df['pain_level'] = 'BackPain'
+                elif 'Head' in row['pain_area']:
+                    df['pain_level'] = 'HeadPain'
+                elif 'Neck' in row['pain_area']:
+                    df['pain_level'] = 'NeckPain'
+                elif 'Foot' in row['pain_area']:
+                    df['pain_level'] = 'FootPain'
+                elif 'Abdomen' in row['pain_area']:
+                    df['pain_level'] = 'AbdomenPain'
+                else:
+                    df['pain_level'] = row['pain_area']
+                # 4. Match all sequences to the same frame length
+                if df.shape[0] < FRAMES_LENGTH:
                     current_length = len(df)
-                    for i in range(current_length, frame_amount):
+                    for i in range(current_length, FRAMES_LENGTH):
                         df.loc[i] = df.loc[current_length - 1]
-                elif df.shape[0] > frame_amount:
+                elif df.shape[0] > FRAMES_LENGTH:
                     df = df.drop(df.index[-1])
-                # 4. Save processed data into train or test folder according to LOSO
+                # 5. Save processed data into train or test folder according to LOSO
                 i = 1
                 if row['account'] == id:
                     for processed_file in (output_filepath / 'test' / 'skeleton').iterdir():
