@@ -39,6 +39,7 @@ def load_dataset(input_filepath):
     testX = np.reshape(
         dataX_test, (len(dataX_test), dataX_test[0].shape[0], dataX_test[0].shape[1]))
     testy = pd.get_dummies(datay_test)
+    testy, tmp = testy.align(trainy, join='outer', axis=1, fill_value=0)
     return trainX, testX, trainy, testy
 
 
