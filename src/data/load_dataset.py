@@ -1,4 +1,5 @@
 import argparse
+from cgi import test
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -14,17 +15,31 @@ def load_file(file):
 def load_dataset(input_filepath):
     root_dir = Path(__file__).parent.parent.parent
     data_dir = root_dir / 'data'
-    input_filepath = data_dir / input_filepath / 'train' / 'skeleton'
-    dataX = list()
-    dataY = list()
-    for file in input_filepath.iterdir():
+    train_filepath = data_dir / input_filepath / 'train' / 'skeleton'
+    test_filepath = data_dir / input_filepath / 'test' / 'skeleton'
+    # 1. Load train data
+    dataX_train = list()
+    datay_train = list()
+    for file in train_filepath.iterdir():
         if file.is_file() and file.name.endswith('.csv'):
             x, y = load_file(file)
-            dataX.append(x)
-            dataY.append(y[0])
-    X = np.reshape(dataX, (len(dataX), dataX[0].shape[0], dataX[0].shape[1]))
-    Y = pd.get_dummies(dataY)
-    return X, Y
+            dataX_train.append(x)
+            datay_train.append(y[0])
+    trainX = np.reshape(
+        dataX_train, (len(dataX_train), dataX_train[0].shape[0], dataX_train[0].shape[1]))
+    trainy = pd.get_dummies(datay_train)
+    # 2. Load test data
+    dataX_test = list()
+    datay_test = list()
+    for file in test_filepath.iterdir():
+        if file.is_file() and file.name.endswith('.csv'):
+            x, y = load_file(file)
+            dataX_test.append(x)
+            datay_test.append(y[0])
+    testX = np.reshape(
+        dataX_test, (len(dataX_test), dataX_test[0].shape[0], dataX_test[0].shape[1]))
+    testy = pd.get_dummies(datay_test)
+    return trainX, testX, trainy, testy
 
 
 if __name__ == '__main__':
