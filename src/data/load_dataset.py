@@ -1,30 +1,29 @@
 import argparse
 import pandas as pd
 import numpy as np
-from numpy import dstack
 from pathlib import Path
 
 
 def load_file(file):
     df = pd.read_csv(file, header=0)
-    y = df['pain_level']
+    labels = df['pain_level']
     df.drop(df.columns[-1], axis=1, inplace=True)
-    return df.to_numpy(), y
+    return df.to_numpy(), labels
 
 
-def main(input_filepath):
+def load_dataset(input_filepath):
     root_dir = Path(__file__).parent.parent.parent
     data_dir = root_dir / 'data'
     input_filepath = data_dir / input_filepath / 'train' / 'skeleton'
-    loaded_X = list()
-    loaded_Y = list()
+    dataX = list()
+    dataY = list()
     for file in input_filepath.iterdir():
         if file.is_file() and file.name.endswith('.csv'):
             x, y = load_file(file)
-            loaded_X.append(x)
-            loaded_Y.append(y)
-    X = dstack(loaded_X)
-    Y = np.array(loaded_Y)
+            dataX.append(x)
+            dataY.append(y[0])
+    X = np.reshape(dataX, (len(dataX), dataX[0].shape[0], dataX[0].shape[1]))
+    Y = pd.get_dummies(dataY)
     return X, Y
 
 
@@ -33,4 +32,4 @@ if __name__ == '__main__':
     parser.add_argument('--input_filepath', type=str, default='processed')
     args = parser.parse_args()
 
-    main(args.input_filepath)
+    load_dataset(args.input_filepath)
