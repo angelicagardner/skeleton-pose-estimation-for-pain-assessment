@@ -3,7 +3,7 @@
 
 # run this script while being in the /models/ directory
 
-brew update
+brew upgrade
 brew install gcc 
 brew install boost
 brew install tbb
@@ -17,7 +17,7 @@ cd OpenFace
 
 mkdir build
 cd build
-cmake -D WITH_OPENMP=ON CMAKE_BUILD_TYPE=RELEASE ..  
+cmake -D WITH_OPENMP=ON CMAKE_BUILD_TYPE=RELEASE ..
 make
 
 cd ..
