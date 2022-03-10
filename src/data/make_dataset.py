@@ -6,7 +6,7 @@ from pathlib import Path
 warnings.filterwarnings("ignore")
 
 
-def main(input_filepath, output_filepath, id):
+def main(input_filepath, output_filepath, id_list):
     FRAMES_LENGTH = 350
     root_dir = Path(__file__).parent.parent.parent
     data_dir = root_dir / 'data'
@@ -16,6 +16,7 @@ def main(input_filepath, output_filepath, id):
     ground_truth_file = input_filepath / 'movement_pain.csv'
     ground_truth = pd.read_csv(ground_truth_file, sep=';')
     for index, row in ground_truth.iterrows():
+        leave_out_subject = row['account'] in id_list
         # 2. Read Skeleton and AUs data
         for folder in input_filepath.iterdir():
             if str(folder.name) == row['scan_id']:
@@ -73,7 +74,7 @@ def main(input_filepath, output_filepath, id):
                     print(aus.shape)
                 # 5. Save processed data into train or test folder according to LOSO
                 i = 1
-                if row['account'] == id:
+                if leave_out_subject:
                     if (include_face_modality):
                         # Save Face Modality
                         for processed_file in (output_filepath / 'test' / 'AUs').iterdir():
@@ -199,7 +200,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_filepath', type=str, default='raw')
     parser.add_argument('--output_filepath', type=str, default='processed')
-    parser.add_argument('--id', type=str, help='id of the LOSO-fold')
+    parser.add_argument('--id', nargs="+", help='id of the LOSO-fold')
     args = parser.parse_args()
 
     main(args.input_filepath, args.output_filepath, args.id)
