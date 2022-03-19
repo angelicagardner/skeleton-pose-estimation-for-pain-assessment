@@ -11,7 +11,7 @@ This project contains the implementation described in '...', which I carried out
 
 I used an internal dataset of 6-second 2D video recordings with one person performing one squat per video. The whole body and face are visible, the person looks into the camera from the front.
 
-From the videos, [PoseNet] (https://github.com/tensorflow/tfjs-models/tree/master/posenet) was used to detect the pose and extract a confidence score of the pose and an array of 17 keypoints. Each keypoint contains the x-position, the y-position and the confidence score. [OpenFace](https://github.com/cmusatyalab/openface) was used for face feature recognition and action unit (AU) extraction. OpenFace is able to recognise a subset of AUs: 1, 2, 4, 5, 6, 7, 9, 10, 12, 14, 15, 17, 20, 23, 25, 26, 28 and 45. AUs are described in two ways: Presence (when AU is visible on the face) and Intensity (how intense is the AU on a 5-point scale). 
+From the videos, [PoseNet] (https://github.com/tensorflow/tfjs-models/tree/master/posenet) was used to detect the pose and extract a confidence score of the pose and an array of 17 keypoints. Each keypoint contains the x-position, the y-position and the confidence score. [OpenFace](https://github.com/cmusatyalab/openface) was used for face feature recognition and action unit (AU) extraction. OpenFace is able to recognise a subset of AUs: 1, 2, 4, 5, 6, 7, 9, 10, 12, 14, 15, 17, 20, 23, 25, 26, 28 and 45. Out of those, OpenFace can detect all but one of the declared PSPI measure of pain intensity: **AU4 + (AU6 k AU7) + (AU9 k AU10) + AU43**. The missing action unit is AU43 (eye closure).
 
 The file ```make_dataset.py``` was run once to load the CSV file output by PoseNet and OpenFace to create the final dataset used in this project.
 
