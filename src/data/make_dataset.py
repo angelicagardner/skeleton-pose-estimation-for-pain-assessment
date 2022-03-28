@@ -16,13 +16,50 @@ def main(input_filepath, output_filepath):
     ground_truth = pd.read_csv(ground_truth_file, sep=';')
     # 1. Make a list of ids for the test set (10% of the total)
     id_list = []
-    accounts = []
+    lmild = []
+    lmoderate = []
+    lsevere = []
+    umild = []
+    umoderate = []
+    usevere = []
     for index, row in ground_truth.iterrows():
-        if row['account'] not in accounts:
-            accounts.append(row['account'])
-    number_ids = len(accounts) * 0.15
-    for i in range(int(number_ids)):
-        id_list.append(accounts[i])
+        if row['level'] <= 3:
+            if 'Foot' in row['pain_area'] or 'Knee' in row['pain_area'] or 'Shin' in row['pain_area'] or 'Hip' in row['pain_area'] or 'Gluteus' in row['pain_area'] or 'Thigh' in row['pain_area'] or 'Hamstrings' in row['pain_area'] or 'Calf' in row['pain_area']:
+                lmild.append(row['account'])
+            elif 'LowerBack' in row['pain_area'] or 'MidBack' in row['pain_area'] or 'Spine' in row['pain_area'] or 'Head' in row['pain_area'] or 'Neck' in row['pain_area'] or 'Abdomen' in row['pain_area'] or 'Shoulder' in row['pain_area'] or 'Arm' in row['pain_area'] or 'Chest' in row['pain_area']:
+                umild.append(row['account'])
+        elif row['level'] >= 4 and row['level'] <= 6:
+            if 'Foot' in row['pain_area'] or 'Knee' in row['pain_area'] or 'Shin' in row['pain_area'] or 'Hip' in row['pain_area'] or 'Gluteus' in row['pain_area'] or 'Thigh' in row['pain_area'] or 'Hamstrings' in row['pain_area'] or 'Calf' in row['pain_area']:
+                lmoderate.append(row['account'])
+            elif 'LowerBack' in row['pain_area'] or 'MidBack' in row['pain_area'] or 'Spine' in row['pain_area'] or 'Head' in row['pain_area'] or 'Neck' in row['pain_area'] or 'Abdomen' in row['pain_area'] or 'Shoulder' in row['pain_area'] or 'Arm' in row['pain_area'] or 'Chest' in row['pain_area']:
+                umoderate.append(row['account'])
+        elif row['level'] >= 7 and row['level'] <= 10:
+            if 'Foot' in row['pain_area'] or 'Knee' in row['pain_area'] or 'Shin' in row['pain_area'] or 'Hip' in row['pain_area'] or 'Gluteus' in row['pain_area'] or 'Thigh' in row['pain_area'] or 'Hamstrings' in row['pain_area'] or 'Calf' in row['pain_area']:
+                lsevere.append(row['account'])
+            elif 'LowerBack' in row['pain_area'] or 'MidBack' in row['pain_area'] or 'Spine' in row['pain_area'] or 'Head' in row['pain_area'] or 'Neck' in row['pain_area'] or 'Abdomen' in row['pain_area'] or 'Shoulder' in row['pain_area'] or 'Arm' in row['pain_area'] or 'Chest' in row['pain_area']:
+                usevere.append(row['account'])
+    number_ids = int((len(lmild) + len(lmoderate) + len(lsevere) +
+                      len(umild) + len(umoderate) + len(usevere)) * 0.1)
+    id_list.append(lmild[0])
+    id_list.append(lmoderate[0])
+    id_list.append(lsevere[0])
+    id_list.append(umild[0])
+    id_list.append(umoderate[0])
+    id_list.append(usevere[0])
+    j = 0
+    for i in range(1, int(number_ids - 5)):
+        if j == 0 and i < len(lmild):
+            id_list.append(lmild[i])
+            j += 1
+        elif j == 1 and i < len(lmoderate):
+            id_list.append(lmoderate[i])
+            j += 1
+        elif j == 2 and i < len(umild):
+            id_list.append(umild[i])
+            j += 1
+        elif j == 3 and i < len(umoderate):
+            id_list.append(umoderate[i])
+            j += 0
     # 2. Read ground truth data
     for index, row in ground_truth.iterrows():
         leave_out_subject = row['account'] in id_list
@@ -45,32 +82,27 @@ def main(input_filepath, output_filepath):
                                     'AU01_r', 'AU02_r', 'AU05_r', 'AU12_r', 'AU14_r', 'AU15_r', 'AU17_r', 'AU20_r', 'AU23_r', 'AU25_r', 'AU26_r', 'AU45_r', 'AU01_c', 'AU02_c', 'AU05_c', 'AU12_c', 'AU14_c', 'AU15_c', 'AU17_c', 'AU20_c', 'AU23_c', 'AU25_c', 'AU26_c', 'AU28_c', 'AU45_c']
                     aus = aus.drop(DROP_COLUMNS, axis=1)
                 # 4. Merge pain area and levels into prediction classes
-                # Pain area
-                if 'Knee' in row['pain_area'] or 'Shin' in row['pain_area'] or 'Hip' in row['pain_area'] or 'Gluteus' in row['pain_area'] or 'Thigh' in row['pain_area'] or 'Hamstrings' in row['pain_area'] or 'Calf' in row['pain_area']:
-                    skeleton['pain_area'] = 'LowerBodyPain'
-                    aus['pain_area'] = 'LowerBodyPain'
-                elif 'Abdomen' in row['pain_area'] or 'Shoulder' in row['pain_area'] or 'Arm' in row['pain_area'] or 'Chest' in row['pain_area']:
-                    skeleton['pain_area'] = 'UpperBodyPain'
-                    aus['pain_area'] = 'UpperBodyPain'
-                elif 'LowerBack' in row['pain_area'] or 'MidBack' in row['pain_area'] or 'Spine' in row['pain_area']:
-                    skeleton['pain_area'] = 'BackPain'
-                    aus['pain_area'] = 'BackPain'
-                elif 'Head' in row['pain_area'] or 'Neck' in row['pain_area']:
-                    skeleton['pain_area'] = 'HeadNeckPain'
-                    aus['pain_area'] = 'HeadNeckPain'
-                elif 'Foot' in row['pain_area']:
-                    skeleton['pain_area'] = 'FootPain'
-                    aus['pain_area'] = 'FootPain'
-                # Pain intensity level
-                if row['level'] == 1 or row['level'] == 2 or row['level'] == 3:
-                    skeleton['pain_level'] = 'Mild'
-                    aus['pain_level'] = 'Mild'
-                elif row['level'] == 4 or row['level'] == 5 or row['level'] == 6:
-                    skeleton['pain_level'] = 'Moderate'
-                    aus['pain_level'] = 'Moderate'
-                elif row['level'] == 7 or row['level'] == 8 or row['level'] == 9 or row['level'] == 10:
-                    skeleton['pain_level'] = 'Severe'
-                    aus['pain_level'] = 'Severe'
+                if row['level'] <= 3:
+                    if 'Foot' in row['pain_area'] or 'Knee' in row['pain_area'] or 'Shin' in row['pain_area'] or 'Hip' in row['pain_area'] or 'Gluteus' in row['pain_area'] or 'Thigh' in row['pain_area'] or 'Hamstrings' in row['pain_area'] or 'Calf' in row['pain_area']:
+                        skeleton['pain'] = 'LowerBody Mild'
+                        aus['pain'] = 'LowerBody Mild'
+                    elif 'LowerBack' in row['pain_area'] or 'MidBack' in row['pain_area'] or 'Spine' in row['pain_area'] or 'Head' in row['pain_area'] or 'Neck' in row['pain_area'] or 'Abdomen' in row['pain_area'] or 'Shoulder' in row['pain_area'] or 'Arm' in row['pain_area'] or 'Chest' in row['pain_area']:
+                        skeleton['pain'] = 'UpperBody Mild'
+                        aus['pain'] = 'UpperBody Mild'
+                elif row['level'] >= 4 and row['level'] <= 6:
+                    if 'Foot' in row['pain_area'] or 'Knee' in row['pain_area'] or 'Shin' in row['pain_area'] or 'Hip' in row['pain_area'] or 'Gluteus' in row['pain_area'] or 'Thigh' in row['pain_area'] or 'Hamstrings' in row['pain_area'] or 'Calf' in row['pain_area']:
+                        skeleton['pain'] = 'LowerBody Moderate'
+                        aus['pain'] = 'LowerBody Moderate'
+                    elif 'LowerBack' in row['pain_area'] or 'MidBack' in row['pain_area'] or 'Spine' in row['pain_area'] or 'Head' in row['pain_area'] or 'Neck' in row['pain_area'] or 'Abdomen' in row['pain_area'] or 'Shoulder' in row['pain_area'] or 'Arm' in row['pain_area'] or 'Chest' in row['pain_area']:
+                        skeleton['pain'] = 'UpperBody Moderate'
+                        aus['pain'] = 'UpperBody Moderate'
+                elif row['level'] >= 7 and row['level'] <= 10:
+                    if 'Foot' in row['pain_area'] or 'Knee' in row['pain_area'] or 'Shin' in row['pain_area'] or 'Hip' in row['pain_area'] or 'Gluteus' in row['pain_area'] or 'Thigh' in row['pain_area'] or 'Hamstrings' in row['pain_area'] or 'Calf' in row['pain_area']:
+                        skeleton['pain'] = 'LowerBody Severe'
+                        aus['pain'] = 'LowerBody Severe'
+                    elif 'LowerBack' in row['pain_area'] or 'MidBack' in row['pain_area'] or 'Spine' in row['pain_area'] or 'Head' in row['pain_area'] or 'Neck' in row['pain_area'] or 'Abdomen' in row['pain_area'] or 'Shoulder' in row['pain_area'] or 'Arm' in row['pain_area'] or 'Chest' in row['pain_area']:
+                        skeleton['pain'] = 'UpperBody Severe'
+                        aus['pain'] = 'UpperBody Severe'
                 # 5. Match all sequences to the same frame length
                 if skeleton.shape[0] < FRAMES_LENGTH:
                     current_skeleton_length = len(skeleton)
@@ -84,7 +116,6 @@ def main(input_filepath, output_filepath):
                         aus.loc[i] = aus.loc[current_aus_length - 1]
                 elif aus.shape[0] > FRAMES_LENGTH:
                     aus = aus.drop(aus.index[-1])
-                    print(aus.shape)
                 # 6. Save processed data into train or test folder according to LOSO
                 i = 1
                 if leave_out_subject:
