@@ -3,10 +3,26 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
+from sklearn.preprocessing import LabelBinarizer
+
+
+def get_feature_names(modality):
+    dir = Path(__file__).parent.parent.parent / \
+        'data' / 'processed' / 'train' / modality
+    for file in dir.iterdir():
+        if file.is_file() and file.name.endswith('.csv'):
+            df = pd.read_csv(file)
+            return df.columns.values
+
+
+def get_class_names(modality):
+    pass
+
 
 def load_file(file):
     df = pd.read_csv(file, header=0)
-    labels = df['pain_level']
+    labels = df['pain']
+    df = df.drop(columns=['pain'])
     df.drop(df.columns[-1], axis=1, inplace=True)
     return df.to_numpy(), labels
 
@@ -17,35 +33,42 @@ def load_dataset(input_filepath, modality):
     train_filepath = data_dir / input_filepath / 'train' / modality
     test_filepath = data_dir / input_filepath / 'test' / modality
     # 1. Load train data
-    dataX_train = list()
-    datay_train = list()
+    X = list()
+    y = list()
     for file in train_filepath.iterdir():
         if file.is_file() and file.name.endswith('.csv'):
-            x, y = load_file(file)
-            dataX_train.append(x)
-            datay_train.append(y[0])
-    trainX = np.reshape(
-        dataX_train, (len(dataX_train), dataX_train[0].shape[0], dataX_train[0].shape[1]))
-    trainy = pd.get_dummies(datay_train)
+            x, labels = load_file(file)
+            X.append(x)
+            y.append(labels[0])
+    n_length = X[0].shape[0]
+    n_features = X[0].shape[1]
+    X = np.array(X)
+    X_train = X.reshape((len(X), 1, n_length, n_features))
+    lb = LabelBinarizer()
+    y_train = lb.fit_transform(y)
     # 2. Load test data
-    dataX_test = list()
-    datay_test = list()
+    X = list()
+    y = list()
     for file in test_filepath.iterdir():
         if file.is_file() and file.name.endswith('.csv'):
-            x, y = load_file(file)
-            dataX_test.append(x)
-            datay_test.append(y[0])
-    testX = np.reshape(
-        dataX_test, (len(dataX_test), dataX_test[0].shape[0], dataX_test[0].shape[1]))
-    testy = pd.get_dummies(datay_test)
-    testy, tmp = testy.align(trainy, join='outer', axis=1, fill_value=0)
-    return trainX, testX, trainy, testy
+            x, labels = load_file(file)
+            X.append(x)
+            y.append(labels[0])
+    n_length = X[0].shape[0]
+    n_features = X[0].shape[1]
+    X = np.array(X)
+    X_test = X.reshape((len(X), 1, n_length, n_features))
+    y_test = lb.transform(y)
+    return X_train, X_test, y_train, y_test
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_filepath', type=str, default='processed')
-    parser.add_argument('--modality', type=str)
+    parser.add_argument('--modality', type=str, default='skeleton')
     args = parser.parse_args()
 
-    load_dataset(args.input_filepath, args.modality)
+    X_train, X_test, y_train, y_test = load_dataset(
+        args.input_filepath, args.modality)
+    print(X_train.shape, y_train.shape)
+    print(X_test.shape, y_test.shape)
