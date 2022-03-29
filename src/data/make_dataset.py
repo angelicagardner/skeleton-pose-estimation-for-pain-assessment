@@ -73,27 +73,20 @@ def main(input_filepath, output_filepath):
                                     'AU01_r', 'AU02_r', 'AU05_r', 'AU12_r', 'AU14_r', 'AU15_r', 'AU17_r', 'AU20_r', 'AU23_r', 'AU25_r', 'AU26_r', 'AU45_r', 'AU01_c', 'AU02_c', 'AU05_c', 'AU12_c', 'AU14_c', 'AU15_c', 'AU17_c', 'AU20_c', 'AU23_c', 'AU25_c', 'AU26_c', 'AU28_c', 'AU45_c']
                     aus = aus.drop(DROP_COLUMNS, axis=1)
                 # 4. Merge pain area and levels into prediction classes
-                if row['level'] <= 3:
+                if row['level'] <= 4:
                     if 'Foot' in row['pain_area'] or 'Knee' in row['pain_area'] or 'Shin' in row['pain_area'] or 'Hip' in row['pain_area'] or 'Gluteus' in row['pain_area'] or 'Thigh' in row['pain_area'] or 'Hamstrings' in row['pain_area'] or 'Calf' in row['pain_area']:
                         skeleton['pain'] = 'LowerBody Mild'
                         aus['pain'] = 'LowerBody Mild'
                     elif 'LowerBack' in row['pain_area'] or 'MidBack' in row['pain_area'] or 'Spine' in row['pain_area'] or 'Head' in row['pain_area'] or 'Neck' in row['pain_area'] or 'Abdomen' in row['pain_area'] or 'Shoulder' in row['pain_area'] or 'Arm' in row['pain_area'] or 'Chest' in row['pain_area']:
                         skeleton['pain'] = 'UpperBody Mild'
                         aus['pain'] = 'UpperBody Mild'
-                elif row['level'] >= 4 and row['level'] <= 6:
+                elif row['level'] >= 5 and row['level'] <= 10:
                     if 'Foot' in row['pain_area'] or 'Knee' in row['pain_area'] or 'Shin' in row['pain_area'] or 'Hip' in row['pain_area'] or 'Gluteus' in row['pain_area'] or 'Thigh' in row['pain_area'] or 'Hamstrings' in row['pain_area'] or 'Calf' in row['pain_area']:
                         skeleton['pain'] = 'LowerBody Moderate'
                         aus['pain'] = 'LowerBody Moderate'
                     elif 'LowerBack' in row['pain_area'] or 'MidBack' in row['pain_area'] or 'Spine' in row['pain_area'] or 'Head' in row['pain_area'] or 'Neck' in row['pain_area'] or 'Abdomen' in row['pain_area'] or 'Shoulder' in row['pain_area'] or 'Arm' in row['pain_area'] or 'Chest' in row['pain_area']:
                         skeleton['pain'] = 'UpperBody Moderate'
                         aus['pain'] = 'UpperBody Moderate'
-                elif row['level'] >= 7 and row['level'] <= 10:
-                    if 'Foot' in row['pain_area'] or 'Knee' in row['pain_area'] or 'Shin' in row['pain_area'] or 'Hip' in row['pain_area'] or 'Gluteus' in row['pain_area'] or 'Thigh' in row['pain_area'] or 'Hamstrings' in row['pain_area'] or 'Calf' in row['pain_area']:
-                        skeleton['pain'] = 'LowerBody Severe'
-                        aus['pain'] = 'LowerBody Severe'
-                    elif 'LowerBack' in row['pain_area'] or 'MidBack' in row['pain_area'] or 'Spine' in row['pain_area'] or 'Head' in row['pain_area'] or 'Neck' in row['pain_area'] or 'Abdomen' in row['pain_area'] or 'Shoulder' in row['pain_area'] or 'Arm' in row['pain_area'] or 'Chest' in row['pain_area']:
-                        skeleton['pain'] = 'UpperBody Severe'
-                        aus['pain'] = 'UpperBody Severe'
                 # 5. Match all sequences to the same frame length
                 if skeleton.shape[0] < FRAMES_LENGTH:
                     current_skeleton_length = len(skeleton)
