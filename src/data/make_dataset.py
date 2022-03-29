@@ -17,48 +17,39 @@ def main(input_filepath, output_filepath):
     # 1. Make a list of ids for the test set (10% of the total)
     id_list = []
     lmild = []
-    lmoderate = []
-    lsevere = []
+    lmoderatetosevere = []
     umild = []
-    umoderate = []
-    usevere = []
+    umoderatetosevere = []
     for index, row in ground_truth.iterrows():
-        if row['level'] <= 3:
+        if row['level'] <= 4:
             if 'Foot' in row['pain_area'] or 'Knee' in row['pain_area'] or 'Shin' in row['pain_area'] or 'Hip' in row['pain_area'] or 'Gluteus' in row['pain_area'] or 'Thigh' in row['pain_area'] or 'Hamstrings' in row['pain_area'] or 'Calf' in row['pain_area']:
                 lmild.append(row['account'])
             elif 'LowerBack' in row['pain_area'] or 'MidBack' in row['pain_area'] or 'Spine' in row['pain_area'] or 'Head' in row['pain_area'] or 'Neck' in row['pain_area'] or 'Abdomen' in row['pain_area'] or 'Shoulder' in row['pain_area'] or 'Arm' in row['pain_area'] or 'Chest' in row['pain_area']:
                 umild.append(row['account'])
-        elif row['level'] >= 4 and row['level'] <= 6:
+        elif row['level'] >= 5 and row['level'] <= 10:
             if 'Foot' in row['pain_area'] or 'Knee' in row['pain_area'] or 'Shin' in row['pain_area'] or 'Hip' in row['pain_area'] or 'Gluteus' in row['pain_area'] or 'Thigh' in row['pain_area'] or 'Hamstrings' in row['pain_area'] or 'Calf' in row['pain_area']:
-                lmoderate.append(row['account'])
+                lmoderatetosevere.append(row['account'])
             elif 'LowerBack' in row['pain_area'] or 'MidBack' in row['pain_area'] or 'Spine' in row['pain_area'] or 'Head' in row['pain_area'] or 'Neck' in row['pain_area'] or 'Abdomen' in row['pain_area'] or 'Shoulder' in row['pain_area'] or 'Arm' in row['pain_area'] or 'Chest' in row['pain_area']:
-                umoderate.append(row['account'])
-        elif row['level'] >= 7 and row['level'] <= 10:
-            if 'Foot' in row['pain_area'] or 'Knee' in row['pain_area'] or 'Shin' in row['pain_area'] or 'Hip' in row['pain_area'] or 'Gluteus' in row['pain_area'] or 'Thigh' in row['pain_area'] or 'Hamstrings' in row['pain_area'] or 'Calf' in row['pain_area']:
-                lsevere.append(row['account'])
-            elif 'LowerBack' in row['pain_area'] or 'MidBack' in row['pain_area'] or 'Spine' in row['pain_area'] or 'Head' in row['pain_area'] or 'Neck' in row['pain_area'] or 'Abdomen' in row['pain_area'] or 'Shoulder' in row['pain_area'] or 'Arm' in row['pain_area'] or 'Chest' in row['pain_area']:
-                usevere.append(row['account'])
-    number_ids = int((len(lmild) + len(lmoderate) + len(lsevere) +
-                      len(umild) + len(umoderate) + len(usevere)) * 0.1)
+                umoderatetosevere.append(row['account'])
+    number_ids = int((len(lmild) + len(lmoderatetosevere) +
+                      len(umild) + len(umoderatetosevere)) * 0.1)
     id_list.append(lmild[0])
-    id_list.append(lmoderate[0])
-    id_list.append(lsevere[0])
+    id_list.append(lmoderatetosevere[0])
     id_list.append(umild[0])
-    id_list.append(umoderate[0])
-    id_list.append(usevere[0])
+    id_list.append(umoderatetosevere[0])
     j = 0
     for i in range(1, int(number_ids - 5)):
         if j == 0 and i < len(lmild):
             id_list.append(lmild[i])
             j += 1
-        elif j == 1 and i < len(lmoderate):
-            id_list.append(lmoderate[i])
+        elif j == 1 and i < len(lmoderatetosevere):
+            id_list.append(lmoderatetosevere[i])
             j += 1
         elif j == 2 and i < len(umild):
             id_list.append(umild[i])
             j += 1
-        elif j == 3 and i < len(umoderate):
-            id_list.append(umoderate[i])
+        elif j == 3 and i < len(umoderatetosevere):
+            id_list.append(umoderatetosevere[i])
             j += 0
     # 2. Read ground truth data
     for index, row in ground_truth.iterrows():
