@@ -61,3 +61,7 @@ The file ```make_dataset.py``` was run once to load the CSV file output by PoseN
 --------
 
 <p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
+
+## Note 
+
+This repository is a hands-on part of a thesis project, and is therefore short-lived without long-term maintenance.
