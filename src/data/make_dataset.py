@@ -16,12 +16,15 @@ def main(input_filepath, output_filepath):
     ground_truth = pd.read_csv(ground_truth_file, sep=';')
     # 1. Make a list of ids for the test set (10% of the total)
     id_list = []
+    nopain = []
     lmild = []
     lmoderatetosevere = []
     umild = []
     umoderatetosevere = []
     for index, row in ground_truth.iterrows():
-        if row['level'] <= 3:
+        if row['level'] == 0:
+            nopain.append(row['account'])
+        elif row['level'] <= 3:
             if 'Foot' in row['pain_area'] or 'Knee' in row['pain_area'] or 'Shin' in row['pain_area'] or 'Hip' in row['pain_area'] or 'Gluteus' in row['pain_area'] or 'Thigh' in row['pain_area'] or 'Hamstrings' in row['pain_area'] or 'Calf' in row['pain_area']:
                 lmild.append(row['account'])
             elif 'LowerBack' in row['pain_area'] or 'MidBack' in row['pain_area'] or 'Spine' in row['pain_area'] or 'Head' in row['pain_area'] or 'Neck' in row['pain_area'] or 'Abdomen' in row['pain_area'] or 'Shoulder' in row['pain_area'] or 'Arm' in row['pain_area'] or 'Chest' in row['pain_area']:
@@ -31,13 +34,22 @@ def main(input_filepath, output_filepath):
                 lmoderatetosevere.append(row['account'])
             elif 'LowerBack' in row['pain_area'] or 'MidBack' in row['pain_area'] or 'Spine' in row['pain_area'] or 'Head' in row['pain_area'] or 'Neck' in row['pain_area'] or 'Abdomen' in row['pain_area'] or 'Shoulder' in row['pain_area'] or 'Arm' in row['pain_area'] or 'Chest' in row['pain_area']:
                 umoderatetosevere.append(row['account'])
-    number_ids = int((len(lmild) + len(lmoderatetosevere) +
-                      len(umild) + len(umoderatetosevere)) * 0.1)
+    nopain = list(set(nopain))
+    lmild = list(set(lmild))
+    lmoderatetosevere = list(set(lmoderatetosevere))
+    umild = list(set(umild))
+    umoderatetosevere = list(set(umoderatetosevere))
+    number_ids = int((len(nopain) + len(lmild) + len(lmoderatetosevere) +
+                      len(umild) + len(umoderatetosevere)))
+    number_test_ids = int(number_ids * 0.1)
+    print(number_ids)
+    print(number_test_ids)
     id_list.append(lmoderatetosevere[0])
     id_list.append(umoderatetosevere[0])
-    for i in range(1, (number_ids - 30)):
+    for i in range(1, number_test_ids):
         if i % 2 == 0 and i < len(lmild):
             id_list.append(lmild[i])
+            id_list.append(nopain[i])
         elif i < len(umild):
             id_list.append(umild[i])
     id_list.append(lmoderatetosevere[1])
@@ -73,7 +85,11 @@ def main(input_filepath, output_filepath):
                     except:
                         include_face_modality = False
                 # 4. Merge pain area and levels into prediction classes
-                if row['level'] <= 3:
+                if row['level'] == 0:
+                    skeleton['pain'] = 'No Pain'
+                    aus['pain'] = 'No Pain'
+                    pose['pain'] = 'No Pain'
+                elif row['level'] <= 3:
                     if 'Foot' in row['pain_area'] or 'Knee' in row['pain_area'] or 'Shin' in row['pain_area'] or 'Hip' in row['pain_area'] or 'Gluteus' in row['pain_area'] or 'Thigh' in row['pain_area'] or 'Hamstrings' in row['pain_area'] or 'Calf' in row['pain_area']:
                         skeleton['pain'] = 'LowerBody Mild'
                         aus['pain'] = 'LowerBody Mild'
@@ -97,19 +113,31 @@ def main(input_filepath, output_filepath):
                     for i in range(current_skeleton_length, FRAMES_LENGTH):
                         skeleton.loc[i] = skeleton.loc[current_skeleton_length - 1]
                 elif skeleton.shape[0] > FRAMES_LENGTH:
-                    skeleton = skeleton.drop(skeleton.index[-1])
+                    current_skeleton_length = len(skeleton)
+                    for i in range((current_skeleton_length - 1), (FRAMES_LENGTH - 1), -1):
+                        skeleton = skeleton.drop(skeleton.index[i])
+                    if skeleton.shape[0] != 350:
+                        print(skeleton.shape)
                 if aus.shape[0] < FRAMES_LENGTH:
                     current_aus_length = len(aus)
                     for i in range(current_aus_length, FRAMES_LENGTH):
                         aus.loc[i] = aus.loc[current_aus_length - 1]
                 elif aus.shape[0] > FRAMES_LENGTH:
-                    aus = aus.drop(aus.index[-1])
+                    current_aus_length = len(aus)
+                    for i in range((current_aus_length - 1), (FRAMES_LENGTH - 1), -1):
+                        aus = aus.drop(aus.index[i])
+                    if aus.shape[0] != 350:
+                        print(aus.shape)
                 if pose.shape[0] < FRAMES_LENGTH:
                     current_pose_length = len(pose)
                     for i in range(current_pose_length, FRAMES_LENGTH):
                         pose.loc[i] = pose.loc[current_pose_length - 1]
                 elif pose.shape[0] > FRAMES_LENGTH:
-                    pose = pose.drop(pose.index[-1])
+                    current_pose_length = len(pose)
+                    for i in range((current_pose_length - 1), (FRAMES_LENGTH - 1), -1):
+                        pose = pose.drop(pose.index[i])
+                    if pose.shape[0] != 350:
+                        print(pose.shape)
                 # 6. Save processed data into train or test folder according to LOSO
                 i = 1
                 if leave_out_subject:
