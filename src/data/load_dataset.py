@@ -15,8 +15,24 @@ def get_feature_names(modality):
             return df.columns.values
 
 
-def get_class_names(modality):
-    pass
+def get_class_names(modality, binary=False):
+    root_dir = Path(__file__).parent.parent.parent
+    data_dir = root_dir / 'data'
+    train_filepath = data_dir / 'processed' / 'train' / modality
+    y = list()
+    for file in train_filepath.iterdir():
+        if file.is_file() and file.name.endswith('.csv'):
+            x, labels = load_file(file)
+            if binary:
+                if labels[0] != 'No Pain':
+                    y.append('Pain')
+                else:
+                    y.append('No Pain')
+            else:
+                y.append(labels[0])
+    lb = LabelBinarizer()
+    y_train = lb.fit_transform(y)
+    return lb.inverse_transform(y_train)
 
 
 def load_file(file):
@@ -24,22 +40,29 @@ def load_file(file):
     labels = df['pain']
     df = df.drop(columns=['pain'])
     df.drop(df.columns[-1], axis=1, inplace=True)
-    return df.to_numpy(), labels
+    return df, labels
 
 
-def load_dataset(input_filepath, modality):
+def load_dataset(modality, binary=False):
     root_dir = Path(__file__).parent.parent.parent
     data_dir = root_dir / 'data'
-    train_filepath = data_dir / input_filepath / 'train' / modality
-    test_filepath = data_dir / input_filepath / 'test' / modality
+    train_filepath = data_dir / 'processed' / 'train' / modality
+    test_filepath = data_dir / 'processed' / 'test' / modality
     # 1. Load train data
     X = list()
     y = list()
     for file in train_filepath.iterdir():
         if file.is_file() and file.name.endswith('.csv'):
             x, labels = load_file(file)
+            x = x.to_numpy()
             X.append(x)
-            y.append(labels[0])
+            if binary:
+                if labels[0] != 'No Pain':
+                    y.append('Pain')
+                else:
+                    y.append('No Pain')
+            else:
+                y.append(labels[0])
     n_length = X[0].shape[0]
     n_features = X[0].shape[1]
     X = np.array(X)
@@ -52,8 +75,15 @@ def load_dataset(input_filepath, modality):
     for file in test_filepath.iterdir():
         if file.is_file() and file.name.endswith('.csv'):
             x, labels = load_file(file)
+            x = x.to_numpy()
             X.append(x)
-            y.append(labels[0])
+            if binary:
+                if labels[0] != 'No Pain':
+                    y.append('Pain')
+                else:
+                    y.append('No Pain')
+            else:
+                y.append(labels[0])
     n_length = X[0].shape[0]
     n_features = X[0].shape[1]
     X = np.array(X)
