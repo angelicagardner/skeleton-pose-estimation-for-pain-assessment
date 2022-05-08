@@ -6,6 +6,9 @@ from pathlib import Path
 from sklearn.preprocessing import LabelBinarizer
 
 
+data_dir = Path(__file__).parent.parent.parent / 'data'
+
+
 def get_feature_names(modality):
     dir = Path(__file__).parent.parent.parent / \
         'data' / 'processed' / 'train' / modality
@@ -16,8 +19,6 @@ def get_feature_names(modality):
 
 
 def get_class_names(modality, binary=False):
-    root_dir = Path(__file__).parent.parent.parent
-    data_dir = root_dir / 'data'
     train_filepath = data_dir / 'processed' / 'train' / modality
     y = list()
     for file in train_filepath.iterdir():
@@ -44,8 +45,6 @@ def load_file(file):
 
 
 def load_dataset(modality, binary=False):
-    root_dir = Path(__file__).parent.parent.parent
-    data_dir = root_dir / 'data'
     train_filepath = data_dir / 'processed' / 'train' / modality
     test_filepath = data_dir / 'processed' / 'test' / modality
     # 1. Load train data
@@ -84,6 +83,77 @@ def load_dataset(modality, binary=False):
                     y.append('No Pain')
             else:
                 y.append(labels[0])
+    n_length = X[0].shape[0]
+    n_features = X[0].shape[1]
+    X = np.array(X)
+    X_test = X.reshape((len(X), 1, n_length, n_features))
+    y_test = lb.transform(y)
+    return X_train, X_test, y_train, y_test
+
+
+def load_fusioned_dataset(binary=False):
+    body_train_filepath = data_dir / 'processed' / 'train' / 'skeleton'
+    body_test_filepath = data_dir / 'processed' / 'test' / 'skeleton'
+    face_train_filepath = data_dir / 'processed' / 'train' / 'AUs'
+    face_test_filepath = data_dir / 'processed' / 'test' / 'AUs'
+    # 1. Load train data
+    X = list()
+    y = list()
+    for file in body_train_filepath.iterdir():
+        if file.is_file() and file.name.endswith('.csv'):
+            body_x, body_labels = load_file(file)
+            has_equivalent_face_file = False
+            for second_file in face_train_filepath.iterdir():
+                if second_file.is_file() and second_file.name.endswith('.csv') and second_file.name == file.name:
+                    # Concatenate features
+                    face_x, face_labels = load_file(second_file)
+                    full_X = np.concatenate((body_x, face_x), axis=1)
+                    body_x = body_x.to_numpy()
+                    face_x = face_x.to_numpy()
+                    X.append(full_X)
+                    if binary:
+                        if body_labels[0] != 'No Pain':
+                            y.append('Pain')
+                        else:
+                            y.append('No Pain')
+                    else:
+                        y.append(body_labels[0])
+                    has_equivalent_face_file = True
+                    break
+            if not has_equivalent_face_file:
+                continue
+    n_length = X[0].shape[0]
+    n_features = X[0].shape[1]
+    X = np.array(X)
+    X_train = X.reshape((len(X), 1, n_length, n_features))
+    lb = LabelBinarizer()
+    y_train = lb.fit_transform(y)
+    # 2. Load test data
+    X = list()
+    y = list()
+    for file in body_test_filepath.iterdir():
+        if file.is_file() and file.name.endswith('.csv'):
+            body_x, body_labels = load_file(file)
+            body_x = body_x.to_numpy()
+            has_equivalent_face_file = False
+            for second_file in face_test_filepath.iterdir():
+                if second_file.is_file() and second_file.name.endswith('.csv') and second_file.name == file.name:
+                    # Concatenate features
+                    face_x, face_labels = load_file(second_file)
+                    face_x = face_x.to_numpy()
+                    full_X = np.concatenate((body_x, face_x), axis=1)
+                    X.append(full_X)
+                    if binary:
+                        if body_labels[0] != 'No Pain':
+                            y.append('Pain')
+                        else:
+                            y.append('No Pain')
+                    else:
+                        y.append(body_labels[0])
+                    has_equivalent_face_file = True
+                    break
+            if not has_equivalent_face_file:
+                continue
     n_length = X[0].shape[0]
     n_features = X[0].shape[1]
     X = np.array(X)
