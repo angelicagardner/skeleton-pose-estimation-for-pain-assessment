@@ -44,14 +44,19 @@ def load_file(file):
     return df, labels
 
 
-def load_dataset(modality, binary=False):
+def load_dataset(modality, binary=False, fusion=False):
     train_filepath = data_dir / 'processed' / 'train' / modality
     test_filepath = data_dir / 'processed' / 'test' / modality
+    has_equivalent_face_file = False
     # 1. Load train data
     X = list()
     y = list()
     for file in train_filepath.iterdir():
         if file.is_file() and file.name.endswith('.csv'):
+            if modality == 'skeleton' and fusion:
+                if not (data_dir / 'processed' / 'train' /
+                        'AUs' / file.name).is_file():
+                    continue
             x, labels = load_file(file)
             x = x.to_numpy()
             X.append(x)
@@ -73,6 +78,10 @@ def load_dataset(modality, binary=False):
     y = list()
     for file in test_filepath.iterdir():
         if file.is_file() and file.name.endswith('.csv'):
+            if modality == 'skeleton' and fusion:
+                if not (data_dir / 'processed' / 'test' /
+                        'AUs' / file.name).is_file():
+                    continue
             x, labels = load_file(file)
             x = x.to_numpy()
             X.append(x)
