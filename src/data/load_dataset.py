@@ -18,12 +18,15 @@ def get_feature_names(modality):
             return df.columns.values
 
 
-def get_class_names(modality, binary=False):
+def get_class_names(modality, nopain=True, binary=False, level=False):
     train_filepath = data_dir / 'processed' / 'train' / modality
     y = list()
     for file in train_filepath.iterdir():
         if file.is_file() and file.name.endswith('.csv'):
-            x, labels = load_file(file)
+            x, labels = load_file(file, level)
+            if not nopain:
+                if labels[0] == 'No Pain':
+                    continue
             if binary:
                 if labels[0] != 'No Pain':
                     y.append('Pain')
@@ -36,15 +39,18 @@ def get_class_names(modality, binary=False):
     return lb.inverse_transform(y_train)
 
 
-def load_file(file):
+def load_file(file, level):
     df = pd.read_csv(file, header=0)
-    labels = df['pain']
-    df = df.drop(columns=['pain'])
+    if level:
+        labels = df['pain_level']
+    else:
+        labels = df['pain_area']
+    df = df.drop(columns=['pain_area', 'pain_level'])
     df.drop(df.columns[-1], axis=1, inplace=True)
     return df, labels
 
 
-def load_dataset(modality, binary=False, fusion=False):
+def load_dataset(modality, nopain=True, binary=False, fusion=False, level=False):
     train_filepath = data_dir / 'processed' / 'train' / modality
     test_filepath = data_dir / 'processed' / 'test' / modality
     has_equivalent_face_file = False
@@ -57,7 +63,10 @@ def load_dataset(modality, binary=False, fusion=False):
                 if not (data_dir / 'processed' / 'train' /
                         'AUs' / file.name).is_file():
                     continue
-            x, labels = load_file(file)
+            x, labels = load_file(file, level)
+            if not nopain:
+                if labels[0] == 'No Pain':
+                    continue
             x = x.to_numpy()
             X.append(x)
             if binary:
@@ -82,7 +91,10 @@ def load_dataset(modality, binary=False, fusion=False):
                 if not (data_dir / 'processed' / 'test' /
                         'AUs' / file.name).is_file():
                     continue
-            x, labels = load_file(file)
+            x, labels = load_file(file, level)
+            if not nopain:
+                if labels[0] == 'No Pain':
+                    continue
             x = x.to_numpy()
             X.append(x)
             if binary:
@@ -100,7 +112,7 @@ def load_dataset(modality, binary=False, fusion=False):
     return X_train, X_test, y_train, y_test
 
 
-def load_fusioned_dataset(binary=False):
+def load_fusioned_dataset(nopain=True, binary=False, level=False):
     body_train_filepath = data_dir / 'processed' / 'train' / 'skeleton'
     body_test_filepath = data_dir / 'processed' / 'test' / 'skeleton'
     face_train_filepath = data_dir / 'processed' / 'train' / 'AUs'
@@ -110,12 +122,15 @@ def load_fusioned_dataset(binary=False):
     y = list()
     for file in body_train_filepath.iterdir():
         if file.is_file() and file.name.endswith('.csv'):
-            body_x, body_labels = load_file(file)
+            body_x, body_labels = load_file(file, level)
+            if not nopain:
+                if body_labels[0] == 'No Pain':
+                    continue
             has_equivalent_face_file = False
             for second_file in face_train_filepath.iterdir():
                 if second_file.is_file() and second_file.name.endswith('.csv') and second_file.name == file.name:
                     # Concatenate features
-                    face_x, face_labels = load_file(second_file)
+                    face_x, face_labels = load_file(second_file, level)
                     full_X = np.concatenate((body_x, face_x), axis=1)
                     body_x = body_x.to_numpy()
                     face_x = face_x.to_numpy()
@@ -142,13 +157,16 @@ def load_fusioned_dataset(binary=False):
     y = list()
     for file in body_test_filepath.iterdir():
         if file.is_file() and file.name.endswith('.csv'):
-            body_x, body_labels = load_file(file)
+            body_x, body_labels = load_file(file, level)
+            if not nopain:
+                if body_labels[0] == 'No Pain':
+                    continue
             body_x = body_x.to_numpy()
             has_equivalent_face_file = False
             for second_file in face_test_filepath.iterdir():
                 if second_file.is_file() and second_file.name.endswith('.csv') and second_file.name == file.name:
                     # Concatenate features
-                    face_x, face_labels = load_file(second_file)
+                    face_x, face_labels = load_file(second_file, level)
                     face_x = face_x.to_numpy()
                     full_X = np.concatenate((body_x, face_x), axis=1)
                     X.append(full_X)
@@ -169,15 +187,3 @@ def load_fusioned_dataset(binary=False):
     X_test = X.reshape((len(X), 1, n_length, n_features))
     y_test = lb.transform(y)
     return X_train, X_test, y_train, y_test
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--input_filepath', type=str, default='processed')
-    parser.add_argument('--modality', type=str, default='skeleton')
-    args = parser.parse_args()
-
-    X_train, X_test, y_train, y_test = load_dataset(
-        args.input_filepath, args.modality)
-    print(X_train.shape, y_train.shape)
-    print(X_test.shape, y_test.shape)
