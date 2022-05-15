@@ -1,0 +1,430 @@
+"""
+Module representing the Meta-Learners, containing an Ensemble of Base-Learners
+"""
+import numpy as np
+from sklearn import metrics
+import warnings
+from abc import abstractmethod
+from sklearn.ensemble import RandomForestRegressor
+import os
+import joblib
+import glob
+from src.lib.DeepStack.deepstack.base import Member
+
+
+class Ensemble(object):
+    """Base Ensemble Definition."""
+
+    @abstractmethod
+    def add_member(self, member):
+        """
+        Adds a model Member to the Ensemble
+
+        Args:
+            member: the model Member
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def fit(self):
+        """
+        Fit method to provided ensemble members
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def predict(self):
+        """
+        Predict using fitted ensemble members
+        """
+        raise NotImplementedError
+
+
+class DirichletEnsemble(Ensemble):
+    """
+    Representation of an Dirichlet Ensemble
+    It weights the ensemble members optimizing a Metric/Score based on a
+    validation dataset. The weight optimization search is performed with
+    randomized search based on the dirichlet distribution.
+    """
+
+    def __init__(self, N=10000, metric=None, maximize=True):
+        """
+        Constructor of a Dirichlet Weighted Ensemble
+        Args:
+            N: the number of times weights should be (randomly) tried out,
+                sampled from a dirichlet distribution
+            metric: (optional) evaluation metric function.
+                Default: `sklearn.metrics.roc_auc_score`
+            maximize: if evaluation metric should be maximized (otherwise minimized)
+        """
+        self.n = N
+        self.metric = metric
+        if metric is None:
+            self.metric = metrics.roc_auc_score
+        self.maximize = maximize
+        # Initialize Parameters:
+        self.members = []
+        self.bestweights = []
+        self.probabilities = None
+        self._nmembers = 0
+        self.bestscore = float("-inf") if maximize else float("inf")
+        self.accuracy = None
+        self.precision = None
+        self.recall = None
+        self.f1 = None
+        self.fitted = False
+
+    def add_members(self, members):
+        """
+        Adds Members to the Ensemble
+        Args:
+            members: a list containing instances of class `Member`
+        """
+        for member in members:
+            self.add_member(member)
+
+    def add_member(self, member):
+        """
+        Adds a Member (Base-Learner) to the Ensemble
+        Args:
+            member: an instance of class `Member`
+        """
+        self.members.append(member)
+        self._nmembers += 1
+
+    def fit(self, verbose=False):
+        """
+        Calculates ensemble weights, optimizing the AUC Binary Classification
+        Metric using randomized search with the dirichlet distribution.
+        """
+        assert(len(self.members) > 1)
+        val_classes = self.members[0].val_classes
+        best_ensemble_score = float("-inf") if self.maximize else float("inf")
+        best_ensemble_accuracy = 0
+        best_ensemble_p = 0
+        best_ensemble_r = 0
+        best_ensemble_f1 = 0
+        rsbest = None
+        for i in range(self.n):
+            rs = np.random.dirichlet(np.ones(self._nmembers), size=1)[0]
+            preds = np.sum(np.array([self.members[i].val_probs * rs[i]
+                                     for i in range(self._nmembers)]), axis=0)
+            ensemble_score = _calculate_metric(val_classes, preds)
+            ensemble_accuracy = _calculate_metric(
+                val_classes, preds, accuracy_score)
+            ensemble_prf1 = _calculate_metric(
+                val_classes, preds, precision_recall_fscore_support)
+            ensemble_p = ensemble_prf1[0]
+            ensemble_r = ensemble_prf1[1]
+            ensemble_f1 = ensemble_prf1[2]
+            max_flag = self.maximize and ensemble_score > best_ensemble_score
+            min_flag = not(
+                self.maximize) and ensemble_score < best_ensemble_score
+            if max_flag or min_flag:
+                if verbose:
+                    print(ensemble_score, i, rs)
+                best_ensemble_score = ensemble_score
+                rsbest = rs
+            if ensemble_accuracy > best_ensemble_accuracy:
+                if verbose:
+                    print(ensemble_accuracy, i, rs)
+                best_ensemble_accuracy = ensemble_accuracy
+            if ensemble_p > best_ensemble_p:
+                if verbose:
+                    print(ensemble_p, i, rs)
+                best_ensemble_p = ensemble_p
+            if ensemble_r > best_ensemble_r:
+                if verbose:
+                    print(ensemble_r, i, rs)
+                best_ensemble_r = ensemble_r
+            if ensemble_f1 > best_ensemble_f1:
+                if verbose:
+                    print(ensemble_f1, i, rs)
+                best_ensemble_f1 = ensemble_f1
+        self.bestweights = rsbest
+        self.bestscore = best_ensemble_score
+        self.accuracy = best_ensemble_accuracy
+        self.precision = best_ensemble_p
+        self.recall = best_ensemble_r
+        self.f1 = best_ensemble_f1
+
+    def predict(self):
+        """
+        Returns the weighed probabilities of the ensemble members
+        Returns:
+            the predicted probabilities as np.array
+        """
+        self.probabilities = np.sum(np.array([self.bestweights[i] *
+                                              self.members[i].submission_probs
+                                              for i in range(self._nmembers)]),
+                                    axis=0)
+        return self.probabilities
+
+    def describe(self):
+        """
+        Prints information about the ensemble members and its weights as well
+        as single and ensemble AUC performance on validation dataset.
+        """
+        for i in range(self._nmembers):
+            member = self.members[i]
+            text = member.name + \
+                " (weight: {:1.4f})".format(self.bestweights[i])
+            print(text)
+        print("Accuracy: {:1.2f}% - ROC/AUC: {:1.2f} - Precision: {:1.2f} - Recall: {:1.2f} - F1 score: {:1.2f}".format(
+            self.accuracy * 100, self.bestscore, self.precision, self.recall, self.f1))
+        return self.bestscore
+
+
+class StackEnsemble(Ensemble):
+    def __init__(self, model=None):
+        """
+        Constructor of a Stacking Ensemble.
+        Args:
+            model: ensemble model which should serve as meta-model.
+                `sklearn.ensemble.RandomForestRegressor` per default for predicting class probabilities.
+            members (list): ensemble Members to add to the Stack
+        """
+        self.model = model
+        if model is None:
+            self.model = RandomForestRegressor(
+                n_estimators=100, max_depth=3, n_jobs=20)
+        # Initialize Parameters:
+        self.members = []
+        self._nmembers = 0
+        self.predictions = None
+        self._y_squeezed = False  # Flags if labels dimension must be squeezed
+
+    def __repr__(self):
+        reps = [member.name for member in self.members]
+        return "<StackEnsemble: [" + ", ".join(reps) + "]>"
+
+    def __str__(self):
+        reps = [member.name for member in self.members]
+        return "StackEnsemble: with" + \
+            str(self._nmembers) + " Base-Learners [" + ", ".join(reps) + "]"
+
+    def add_members(self, members):
+        """
+        Adds ensemble Members to the Stack
+        Args:
+            members: a list containing instances of class `Member`
+        """
+        for member in members:
+            self.add_member(member)
+        self._test()
+
+    def add_member(self, member):
+        """
+        Adds a ensemble Member to the Stack
+        Args:
+            member: an instance of class `Member`
+        """
+        self.members.append(member)
+        self._nmembers += 1
+        if member.val_probs is None:
+            try:
+                member.val_probs = member._calculate_val_predictions()
+            except Exception as e:
+                warnings.warn(str(e))
+        if member.train_probs is None:
+            try:
+                member.train_probs = member._calculate_train_predictions()
+            except Exception as e:
+                warnings.warn(str(e))
+
+    def fit(self, X=None, y=None, kwargs={}):
+        """
+        Trains the meta-model
+        Args:
+            X: training data for meta-learner
+            y: training classes for meta-learner
+            kwargs: further arguments for the fit function
+        """
+        assert(len(self.members) > 1)
+        # Assumption: all members have same train_batches.classes
+        if X is None or y is None:
+            return self._fit_train()
+        if X.ndim >= 3:
+            X = X.reshape(X.shape[0], np.prod(X.shape[1::]))
+        try:
+            self._y_squeezed = False
+            return self.model.fit(X, y, **kwargs)
+        except ValueError:  # Normally bad input shape for non-multi-output models
+            self._y_squeezed = True
+            y_flat = np.argmax(y, axis=1)
+            return self.model.fit(X, y_flat, **kwargs)
+
+    def predict(self, X=None, predict_proba=False, kwargs={}):
+        """
+        Meta-Model prediction for the class' probabilities as a regression
+        problem.
+        Args:
+            X: input data to be predicted
+            kwargs: further arguments for prediction function
+            predict_proba: if should call method `predict_proba`
+                instead of `predict`.
+        Returns:
+            the predicted probabilities as np.array
+        """
+        if X is None:
+            X = self._get_pred_X()
+        if X.ndim == 3:
+            X = X.reshape(X.shape[0], X.shape[1] * X.shape[2])
+        if (predict_proba or self._y_squeezed) and hasattr(self.model, 'predict_proba'):
+            self.predictions = self.model.predict_proba(X, **kwargs)
+            print("Calling predict_proba")
+        elif hasattr(self.model, 'predict'):
+            self.predictions = self.model.predict(X, **kwargs)
+            print("Calling predict")
+        else:
+            raise ValueError("Model has no predict function")
+        return np.array(self.predictions)
+
+    def describe(self, probabilities_val=None, metric=None,
+                 maximize=True):
+        """
+        Prints information about the performance of base and meta learners
+        based on validation data.
+        Args:
+            probabilities_val: (optional) probabilities/prediction on
+                validation data
+            metric: (optional) evaluation metric function.
+                Default: `sklearn.metrics.roc_auc_score`
+            maximize: if metric should be maximized (otherwise minimized)
+        """
+        best_score = float("-inf") if maximize else float("inf")
+        if metric is None:
+            metric = metrics.roc_auc_score
+        if probabilities_val is None:
+            probabilities_val = self._predict_val()
+        # Assumption: all members have same val_classes
+        val_classes = self.members[0].val_classes
+        for i in range(self._nmembers):
+            member = self.members[i]
+            model_score = _calculate_metric(
+                member.val_classes, member.val_probs, metric)
+            max_flag = maximize and model_score > best_score
+            min_flag = not(maximize) and model_score < best_score
+            if max_flag or min_flag:
+                best_score = model_score
+            text = member.name + " - {}: {:1.4f}".format(
+                metric.__name__, model_score)
+            print(text)
+        ensemble_score = _calculate_metric(
+            val_classes, probabilities_val, metric)
+        print("StackEnsemble {}: {:1.4f}".format(
+            metric.__name__, ensemble_score))
+        return ensemble_score
+
+    def _get_X(self, attrname):
+        X = []
+        probs = getattr(self.members[0], attrname)
+        # Assumption: all members have same train_probs length
+        for i in range(len(probs)):
+            preds = []
+            for member in self.members:
+                preds.append(getattr(member, attrname)[i])
+            X.append(preds)
+        return np.array(X)
+
+    def _get_train_X(self):
+        return self._get_X("train_probs")
+
+    def _get_val_X(self):
+        return self._get_X("val_probs")
+
+    def _get_pred_X(self):
+        return self._get_X("submission_probs")
+
+    def _fit_train(self):
+        return self.fit(self._get_train_X(), self.members[0].train_classes)
+
+    def _fit_submission(self):
+        """
+        Fits model on training and validation data.
+        Useful when training the meta-learner for final submission prediction
+        """
+        X1 = self._get_train_X()
+        X2 = self._get_val_X()
+        y1 = self.members[0].train_classes
+        y2 = self.members[0].val_classes
+        X = np.concatenate((X1, X2))
+        y = np.concatenate((y1, y2))
+        return self.fit(X, y)
+
+    def _predict_val(self):
+        return self.predict(self._get_val_X())
+
+    def _test(self):
+        """
+        Test assumption that all members' classes have same shape and values.
+        Names should be unique.
+        This is an internal condition for class structures.
+        """
+        if self._nmembers < 2:
+            return True
+        t1 = [(np.array_equal(self.members[i].train_classes,
+                              self.members[i + 1].train_classes))
+              for i in range(self._nmembers - 1)]
+        t2 = [(np.array_equal(self.members[i].val_classes,
+                              self.members[i + 1].val_classes))
+              for i in range(self._nmembers - 1)]
+        assert(np.sum(t1) == self._nmembers - 1)
+        assert(np.sum(t2) == self._nmembers - 1)
+        names = [self.members[i].name for i in range(self._nmembers)]
+        assert(len(list(names)) == len(set(names)))
+        return True
+
+    def save(self, folder="./premodels/"):
+        """
+        Saves meta-learner and base-learner of ensemble into folder / directory
+        Args:
+            folder: the folder where models should be saved to.
+                Create if not exists.
+        """
+        if not os.path.exists(folder):
+            os.mkdir(folder)
+        [member.save(folder=folder) for member in self.members]
+        temp = self.members
+        # Reset base-learners. These are loaded idependently
+        self.members = None
+        self._nmembers = 0
+        joblib.dump(self, os.path.join(folder, "stackensemble.joblib"))
+        self.members = temp
+        self._nmembers = len(self.members)
+        return self
+
+    @classmethod
+    def load(cls, folder="./premodels/"):
+        """
+        Loads meta-learner and base-learners from folder / directory
+        Args:
+            folder: directory where models should be loaded from
+        Returns:
+            loaded StackEnsemble with Members
+        """
+        stack = joblib.load(os.path.join(folder, "stackensemble.joblib"))
+        stack.members = []
+        if folder[-1] != os.sep:
+            folder += os.sep
+        for fn in glob.glob(folder + "**/"):
+            member = Member.load(fn)
+            stack.add_member(member)
+        return stack
+
+
+def _calculate_metric(y_true, y_pred, metric=None):
+    if metric is None:
+        metric = metrics.roc_auc_score
+    y_t = y_true
+    y_p = y_pred
+    if metric == metrics.roc_auc_score:
+        return metric(y_t, y_p, multi_class='ovo')
+    if y_true.ndim > 1:
+        y_t = np.argmax(y_true, axis=1)
+    if y_pred.ndim > 1:
+        y_p = np.argmax(y_pred, axis=1)
+    if metric is metrics.precision_recall_fscore_support:
+        return metrics.precision_recall_fscore_support(y_t, y_p, average='macro')
+    return metric(y_t, y_p)
