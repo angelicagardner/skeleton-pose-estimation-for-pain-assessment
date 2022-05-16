@@ -19,21 +19,31 @@ class RCNN():
             conv1d_1 = TimeDistributed(Conv1D(filters=64, kernel_size=3, activation=PReLU(
                 alpha_initializer=Constant(value=0.25))))(input_1)
             bn_1 = TimeDistributed(BatchNormalization())(conv1d_1)
+            conv1d_2 = TimeDistributed(Conv1D(filters=128, kernel_size=3, activation=PReLU(
+                alpha_initializer=Constant(value=0.25))))(bn_1)
             maxpool_1 = TimeDistributed(MaxPooling1D(
-                pool_size=2, data_format='channels_first'))(bn_1)
+                pool_size=2, data_format='channels_first'))(conv1d_2)
             flatten_1 = Flatten()(maxpool_1)
-            dense_1 = Dense(64)(flatten_1)
+            dense_1 = Dense(128, activation=PReLU(
+                alpha_initializer=Constant(value=0.25)))(flatten_1)
+            dense_11 = Dense(512, activation=PReLU(
+                alpha_initializer=Constant(value=0.25)))(dense_1)
 
             input_2 = Input(shape=(1, n_length, second_n_features))
             conv1d_2 = TimeDistributed(Conv1D(filters=64, kernel_size=3, activation=PReLU(
                 alpha_initializer=Constant(value=0.25))))(input_2)
             bn_2 = TimeDistributed(BatchNormalization())(conv1d_2)
+            conv1d_22 = TimeDistributed(Conv1D(filters=128, kernel_size=3, activation=PReLU(
+                alpha_initializer=Constant(value=0.25))))(bn_2)
             maxpool_2 = TimeDistributed(MaxPooling1D(
-                pool_size=2, data_format='channels_first'))(bn_2)
+                pool_size=2, data_format='channels_first'))(conv1d_22)
             flatten_2 = Flatten()(maxpool_2)
-            dense_2 = Dense(64)(flatten_2)
+            dense_2 = Dense(128, activation=PReLU(
+                alpha_initializer=Constant(value=0.25)))(flatten_1)
+            dense_22 = Dense(512, activation=PReLU(
+                alpha_initializer=Constant(value=0.25)))(dense_1)
 
-            concat = Concatenate()([dense_1, dense_2])
+            concat = Concatenate()([dense_11, dense_22])
             output = Dense(units=n_outputs, activation='sigmoid')(concat)
             model = Model(inputs=[input_1, input_2], outputs=[output])
         else:
@@ -56,14 +66,14 @@ class RCNN():
         ), tf.keras.metrics.Precision(), tf.keras.metrics.Recall(), tfa.metrics.F1Score(num_classes=n_outputs, average='macro')])
         self.model = model
 
-    def train(self, X_train, y_train, X_val, y_val, epochs, batch_size):
+    def train(self, X_train, y_train, X_val, y_val, epochs, batch_size, class_weight=None):
         history = self.model.fit(X_train, y_train, validation_data=(
-            X_val, y_val), epochs=epochs, batch_size=batch_size, callbacks=[self.early_stopping], verbose=2)
+            X_val, y_val), epochs=epochs, batch_size=batch_size, callbacks=[self.early_stopping], class_weight=class_weight, verbose=2)
         return history
 
-    def trainFusioned(self, body_X_train, face_X_train, y_train, body_X_val, face_X_val, y_val, epochs, batch_size):
+    def trainFusioned(self, body_X_train, face_X_train, y_train, body_X_val, face_X_val, y_val, epochs, batch_size, class_weight=None):
         history = self.model.fit([body_X_train, face_X_train], y_train, validation_data=(
-            [body_X_val, face_X_val], y_val), epochs=epochs, batch_size=batch_size, callbacks=[self.early_stopping], verbose=2)
+            [body_X_val, face_X_val], y_val), epochs=epochs, batch_size=batch_size, callbacks=[self.early_stopping], class_weight=class_weight, verbose=2)
         return history
 
     def save(self, model_path):
