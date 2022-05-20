@@ -61,24 +61,30 @@ class CNNLSTM():
             model = Model(inputs=[input_1, input_2], outputs=[output])
         else:
             input = Input(shape=(1, n_length, n_features))
-            conv1d_1 = TimeDistributed(
-                Conv1D(filters=64, kernel_size=3, activation='tanh'))(input)
-            bn_1 = TimeDistributed(BatchNormalization())(conv1d_1)
-            conv1d_2 = TimeDistributed(
-                Conv1D(filters=128, kernel_size=3, activation='tanh'))(bn_1)
+            conv1d_1 = Conv1D(filters=64, kernel_size=3,
+                              activation='relu')(input)
             maxpool_1 = TimeDistributed(MaxPooling1D(
-                pool_size=2, strides=2, data_format='channels_first'))(conv1d_2)
-            conv1d_3 = TimeDistributed(
-                Conv1D(filters=128, kernel_size=3, activation='tanh'))(input)
-            bn_2 = TimeDistributed(BatchNormalization())(conv1d_3)
-            conv1d_4 = TimeDistributed(
-                Conv1D(filters=256, kernel_size=3, activation='tanh'))(bn_2)
+                pool_size=2, strides=2, data_format='channels_first'))(conv1d_1)
+            conv1d_2 = Conv1D(filters=128, kernel_size=3,
+                              activation='relu')(maxpool_1)
+            conv1d_3 = Conv1D(filters=128, kernel_size=3,
+                              activation='relu')(conv1d_2)
             maxpool_2 = TimeDistributed(MaxPooling1D(
-                pool_size=2, strides=2, data_format='channels_first'))(conv1d_4)
-            flatten = TimeDistributed(Flatten())(maxpool_2)
-            lstm = Bidirectional(LSTM(300, activation='tanh'))(flatten)
-            dense_1 = Dense(256, activation='tanh')(lstm)
-            dense_2 = Dense(512, activation='tanh')(dense_1)
+                pool_size=2, strides=2, data_format='channels_first'))(conv1d_3)
+            conv1d_4 = Conv1D(filters=256, kernel_size=3,
+                              activation='relu')(maxpool_2)
+            conv1d_5 = Conv1D(filters=256, kernel_size=3,
+                              activation='relu')(conv1d_4)
+            conv1d_6 = Conv1D(filters=256, kernel_size=3,
+                              activation='relu')(conv1d_5)
+            maxpool_3 = TimeDistributed(MaxPooling1D(
+                pool_size=2, strides=2, data_format='channels_first'))(conv1d_6)
+            conv1d_7 = Conv1D(filters=512, kernel_size=3,
+                              activation='relu')(maxpool_3)
+            conv1d_8 = Conv1D(filters=512, kernel_size=3,
+                              activation='relu')(conv1d_7)
+            conv1d_9 = Conv1D(filters=512, kernel_size=3,
+                              activation='relu')(conv1d_8)
             if multiclass:
                 output = Dense(units=n_outputs, activation='softmax')(dense_2)
             else:

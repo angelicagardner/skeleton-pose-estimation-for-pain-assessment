@@ -1,6 +1,6 @@
 import tensorflow as tf
 import tensorflow_addons as tfa
-from tensorflow.keras.layers import Input, Dense, Flatten, TimeDistributed, Conv1D, MaxPooling1D, Concatenate, BatchNormalization
+from tensorflow.keras.layers import Input, Dense, Flatten, TimeDistributed, Conv1D, MaxPooling1D, Concatenate, BatchNormalization, Dropout
 from tensorflow.keras import Model
 from tensorflow.keras.initializers import Constant
 from keras.layers.advanced_activations import PReLU
@@ -51,41 +51,44 @@ class RCNN():
             model = Model(inputs=[input_1, input_2], outputs=[output])
         else:
             input = Input(shape=(1, n_length, n_features))
-            conv1 = Conv1D(64, 1)
-            stack2 = BatchNormalization()(conv1)
+            conv1 = Conv1D(filters=128, kernel_size=1, padding='same',)
+            stack1 = conv1(input)
+            stack2 = BatchNormalization()(stack1)
             stack3 = PReLU()(stack2)
-            conv2 = Conv1D(64, 3, init='he_normal')
+            conv2 = Conv1D(filters=128, kernel_size=3,
+                           padding='same', kernel_initializer='he_normal')
             stack4 = conv2(stack3)
-        stack5 = merge([stack1, stack4], mode='sum')
-        stack6 = BatchNormalization()(stack5)
-        stack7 = PReLU()(stack6)
-
-           # conv1d_1 = TimeDistributed(Conv1D(filters=64, kernel_size=3, activation=PReLU(
-           #     alpha_initializer=Constant(value=0.25))))(input)
-           # bn = TimeDistributed(BatchNormalization())(conv1d_1)
-           # conv1d_2 = TimeDistributed(Conv1D(filters=128, kernel_size=3, activation=PReLU(
-           #     alpha_initializer=Constant(value=0.25))))(bn)
-           # maxpool = TimeDistributed(MaxPooling1D(
-           #     pool_size=2, strides=2, data_format='channels_first'))(conv1d_2)
-           # flatten = Flatten()(maxpool)
-           # dense_1 = Dense(256, activation=PReLU(
-           #     alpha_initializer=Constant(value=0.25)))(flatten)
-           # dense_2 = Dense(512, activation=PReLU(
-           #     alpha_initializer=Constant(value=0.25)))(dense_1)
-           if multiclass:
-                output = Dense(units=n_outputs, activation='softmax')(dense_2)
+            stack5 = Concatenate()([stack1, stack4])
+            stack6 = BatchNormalization()(stack5)
+            stack7 = PReLU()(stack6)
+            conv3 = Conv1D(filters=128, kernel_size=3,
+                           padding='same')
+            stack8 = conv3(stack7)
+            stack9 = Concatenate()([stack1, stack8])
+            stack10 = BatchNormalization()(stack9)
+            stack11 = PReLU()(stack10)
+            conv4 = Conv1D(filters=128, kernel_size=3, padding='same')
+            stack12 = conv4(stack11)
+            stack13 = Concatenate()([stack1, stack12])
+            stack14 = BatchNormalization()(stack13)
+            stack15 = PReLU()(stack14)
+            stack16 = TimeDistributed(MaxPooling1D(
+                (2), strides=2, data_format='channels_first'))(stack15)
+            stack17 = Dropout(0.1)(stack16)
+            flatten = Flatten()(stack17)
+            if multiclass:
+                output = Dense(units=n_outputs, activation='softmax')(flatten)
             else:
-                output = Dense(units=n_outputs, activation='sigmoid')(dense_2)
+                output = Dense(units=n_outputs, activation='sigmoid')(flatten)
             model = Model(inputs=input, outputs=output)
-
-        if multiclass:
-            model.compile(loss='categorical_crossentropy', optimizer=tf.keras.optimizers.Nadam(learning_rate=0.0001), metrics=['accuracy', tf.keras.metrics.AUC(
-            ), tf.keras.metrics.Precision(), tf.keras.metrics.Recall(), tfa.metrics.F1Score(num_classes=n_outputs, average='macro')])
-            self.model = model
-        else:
-            model.compile(loss='binary_crossentropy', optimizer=tf.keras.optimizers.Nadam(learning_rate=0.0001), metrics=['accuracy', tf.keras.metrics.AUC(
-            ), tf.keras.metrics.Precision(), tf.keras.metrics.Recall(), tfa.metrics.F1Score(num_classes=n_outputs, average='macro')])
-            self.model = model
+            if multiclass:
+                model.compile(loss='categorical_crossentropy', optimizer=tf.keras.optimizers.Nadam(learning_rate=0.0001), metrics=['accuracy', tf.keras.metrics.AUC(
+                ), tf.keras.metrics.Precision(), tf.keras.metrics.Recall(), tfa.metrics.F1Score(num_classes=n_outputs, average='macro')])
+                self.model = model
+            else:
+                model.compile(loss='binary_crossentropy', optimizer=tf.keras.optimizers.Nadam(learning_rate=0.0001), metrics=['accuracy', tf.keras.metrics.AUC(
+                ), tf.keras.metrics.Precision(), tf.keras.metrics.Recall(), tfa.metrics.F1Score(num_classes=n_outputs, average='macro')])
+                self.model = model
 
     def train(self, X_train, y_train, X_val, y_val, epochs, batch_size, class_weight=None):
         history = self.model.fit(X_train, y_train, validation_data=(
