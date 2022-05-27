@@ -1,4 +1,3 @@
-import argparse
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -50,10 +49,11 @@ def load_file(file, level):
     return df, labels
 
 
-def load_dataset(modality, nopain=True, binary=False, fusion=False, level=False):
+def load_dataset(modality, nopain=True, binary=False, fusion=False, level=False, only_minority=False):
     train_filepath = data_dir / 'processed' / 'train' / modality
     test_filepath = data_dir / 'processed' / 'test' / modality
-    has_equivalent_face_file = False
+    if only_minority:
+        nr_mild = 0
     # 1. Load train data
     X = list()
     y = list()
@@ -67,6 +67,11 @@ def load_dataset(modality, nopain=True, binary=False, fusion=False, level=False)
             if not nopain:
                 if labels[0] == 'No Pain':
                     continue
+            if only_minority:
+                if (labels[0] == 'Mild' or labels[0] == 'Lower Body') and nr_mild > 2:
+                    continue
+                elif (labels[0] == 'Mild' or labels[0] == 'Lower Body'):
+                    nr_mild += 1
             x = x.to_numpy()
             X.append(x)
             if binary:
@@ -95,6 +100,11 @@ def load_dataset(modality, nopain=True, binary=False, fusion=False, level=False)
             if not nopain:
                 if labels[0] == 'No Pain':
                     continue
+            if only_minority:
+                if (labels[0] == 'Mild' or labels[0] == 'Lower Body') and nr_mild > 2:
+                    continue
+                elif (labels[0] == 'Mild' or labels[0] == 'Lower Body'):
+                    nr_mild += 1
             x = x.to_numpy()
             X.append(x)
             if binary:
