@@ -8,7 +8,7 @@ from keras.layers.advanced_activations import PReLU
 class RCNN_fusioned():
     early_stopping = tf.keras.callbacks.EarlyStopping(
         monitor="val_loss",
-        patience=50,
+        patience=30,
         restore_best_weights=True,
     )
 
@@ -30,13 +30,8 @@ class RCNN_fusioned():
         stack9_1 = Concatenate()([stack1_1, stack8_1])
         stack10_1 = BatchNormalization()(stack9_1)
         stack11_1 = PReLU()(stack10_1)
-        conv4_1 = Conv1D(filters=128, kernel_size=3, padding='same')
-        stack12_1 = conv4_1(stack11_1)
-        stack13_1 = Concatenate()([stack1_1, stack12_1])
-        stack14_1 = BatchNormalization()(stack13_1)
-        stack15_1 = PReLU()(stack14_1)
         stack16_1 = TimeDistributed(MaxPooling1D(
-            (2), strides=2, data_format='channels_first'))(stack15_1)
+            (2), strides=2, data_format='channels_first'))(stack11_1)
         stack17_1 = Dropout(0.1)(stack16_1)
         flatten_1 = Flatten()(stack17_1)
 
@@ -57,13 +52,8 @@ class RCNN_fusioned():
         stack9_2 = Concatenate()([stack1_2, stack8_2])
         stack10_2 = BatchNormalization()(stack9_2)
         stack11_2 = PReLU()(stack10_2)
-        conv4_2 = Conv1D(filters=128, kernel_size=3, padding='same')
-        stack12_2 = conv4_2(stack11_2)
-        stack13_2 = Concatenate()([stack1_2, stack12_2])
-        stack14_2 = BatchNormalization()(stack13_2)
-        stack15_2 = PReLU()(stack14_2)
         stack16_2 = TimeDistributed(MaxPooling1D(
-            (2), strides=2, data_format='channels_first'))(stack15_2)
+            (2), strides=2, data_format='channels_first'))(stack11_2)
         stack17_2 = Dropout(0.1)(stack16_2)
         flatten_2 = Flatten()(stack17_2)
 

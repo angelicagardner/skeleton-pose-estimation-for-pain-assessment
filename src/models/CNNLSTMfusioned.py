@@ -7,7 +7,7 @@ from tensorflow.keras import Model
 class CNNLSTM_fusioned():
     early_stopping = tf.keras.callbacks.EarlyStopping(
         monitor="val_loss",
-        patience=50,
+        patience=30,
         restore_best_weights=True,
     )
 
@@ -17,60 +17,32 @@ class CNNLSTM_fusioned():
                             activation='relu')(input_1)
         bn_1_1 = BatchNormalization()(conv1d_1_1)
         conv1d_2_1 = Conv1D(filters=64, kernel_size=3,
-                            activation='relu')(bn_1_1)
+                            activation='tanh')(bn_1_1)
         maxpool_1_1 = TimeDistributed(MaxPooling1D(
             pool_size=2, strides=2, data_format='channels_first'))(conv1d_2_1)
-        conv1d_3_1 = Conv1D(filters=128, kernel_size=3,
-                            activation='relu')(maxpool_1_1)
-        bn_2_1 = BatchNormalization()(conv1d_3_1)
-        conv1d_4_1 = Conv1D(filters=128, kernel_size=3,
-                            activation='relu')(bn_2_1)
-        maxpool_2_1 = TimeDistributed(MaxPooling1D(
-            pool_size=2, strides=2, data_format='channels_first'))(conv1d_4_1)
-        conv1d_5_1 = Conv1D(filters=256, kernel_size=3,
-                            activation='relu')(maxpool_2_1)
-        bn_3_1 = BatchNormalization()(conv1d_5_1)
-        conv1d_6_1 = Conv1D(filters=256, kernel_size=3,
-                            activation='relu')(bn_3_1)
-        maxpool_3_1 = TimeDistributed(MaxPooling1D(
-            pool_size=2, strides=2, data_format='channels_first'))(conv1d_6_1)
         lstm_1_1 = TimeDistributed(Bidirectional(
-            LSTM(units=300, return_sequences=True)))(maxpool_3_1)
+            LSTM(units=300, return_sequences=True)))(maxpool_1_1)
         lstm_2_1 = TimeDistributed(Bidirectional(LSTM(units=300)))(lstm_1_1)
         flatten_1 = Flatten()(lstm_2_1)
-        dense_1_1 = Dense(256, activation='relu')(flatten_1)
+        dense_1_1 = Dense(128, activation='tanh')(flatten_1)
         dropout_1 = Dropout(0.1)(dense_1_1)
-        dense_2_1 = Dense(512, activation='relu')(dropout_1)
+        dense_2_1 = Dense(256, activation='tanh')(dropout_1)
 
         input_2 = Input(shape=(1, n_length, face_features))
         conv1d_1_2 = Conv1D(filters=64, kernel_size=3,
-                            activation='relu')(input_2)
+                            activation='tanh')(input_2)
         bn_1_2 = BatchNormalization()(conv1d_1_2)
         conv1d_2_2 = Conv1D(filters=64, kernel_size=3,
-                            activation='relu')(bn_1_2)
+                            activation='tanh')(bn_1_2)
         maxpool_1_2 = TimeDistributed(MaxPooling1D(
             pool_size=2, strides=2, data_format='channels_first'))(conv1d_2_2)
-        conv1d_3_2 = Conv1D(filters=128, kernel_size=3,
-                            activation='relu')(maxpool_1_2)
-        bn_2_2 = BatchNormalization()(conv1d_3_2)
-        conv1d_4_2 = Conv1D(filters=128, kernel_size=3,
-                            activation='relu')(bn_2_2)
-        maxpool_2_2 = TimeDistributed(MaxPooling1D(
-            pool_size=2, strides=2, data_format='channels_first'))(conv1d_4_2)
-        conv1d_5_2 = Conv1D(filters=256, kernel_size=3,
-                            activation='relu')(maxpool_2_2)
-        bn_3_2 = BatchNormalization()(conv1d_5_2)
-        conv1d_6_2 = Conv1D(filters=256, kernel_size=3,
-                            activation='relu')(bn_3_2)
-        maxpool_3_2 = TimeDistributed(MaxPooling1D(
-            pool_size=2, strides=2, data_format='channels_first'))(conv1d_6_2)
         lstm_1_2 = TimeDistributed(Bidirectional(
-            LSTM(units=300, return_sequences=True)))(maxpool_3_2)
+            LSTM(units=300, return_sequences=True)))(maxpool_1_2)
         lstm_2_2 = TimeDistributed(Bidirectional(LSTM(units=300)))(lstm_1_2)
         flatten_2 = Flatten()(lstm_2_2)
-        dense_1_2 = Dense(256, activation='relu')(flatten_2)
+        dense_1_2 = Dense(128, activation='tanh')(flatten_2)
         dropout_2 = Dropout(0.1)(dense_1_2)
-        dense_2_2 = Dense(512, activation='relu')(dropout_2)
+        dense_2_2 = Dense(256, activation='tanh')(dropout_2)
 
         concat = Concatenate()([dense_2_1, dense_2_2])
         if multiclass:

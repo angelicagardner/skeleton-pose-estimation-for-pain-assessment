@@ -8,7 +8,7 @@ from keras.layers.advanced_activations import PReLU
 class RCNN():
     early_stopping = tf.keras.callbacks.EarlyStopping(
         monitor="val_loss",
-        patience=50,
+        patience=30,
         restore_best_weights=True,
     )
 
@@ -30,13 +30,8 @@ class RCNN():
         stack9 = Concatenate()([stack1, stack8])
         stack10 = BatchNormalization()(stack9)
         stack11 = PReLU()(stack10)
-        conv4 = Conv1D(filters=128, kernel_size=3, padding='same')
-        stack12 = conv4(stack11)
-        stack13 = Concatenate()([stack1, stack12])
-        stack14 = BatchNormalization()(stack13)
-        stack15 = PReLU()(stack14)
         stack16 = TimeDistributed(MaxPooling1D(
-            (2), strides=2, data_format='channels_first'))(stack15)
+            (2), strides=2, data_format='channels_first'))(stack11)
         stack17 = Dropout(0.1)(stack16)
         flatten = Flatten()(stack17)
         if multiclass:

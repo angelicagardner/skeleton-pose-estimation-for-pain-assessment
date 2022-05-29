@@ -7,7 +7,7 @@ from tensorflow.keras import Model
 class CNNLSTM():
     early_stopping = tf.keras.callbacks.EarlyStopping(
         monitor="val_loss",
-        patience=50,
+        patience=30,
         restore_best_weights=True,
     )
 
@@ -20,27 +20,13 @@ class CNNLSTM():
                           activation='relu')(bn_1)
         maxpool_1 = TimeDistributed(MaxPooling1D(
             pool_size=2, strides=2, data_format='channels_first'))(conv1d_2)
-        conv1d_3 = Conv1D(filters=128, kernel_size=3,
-                          activation='relu')(maxpool_1)
-        bn_2 = BatchNormalization()(conv1d_3)
-        conv1d_4 = Conv1D(filters=128, kernel_size=3,
-                          activation='relu')(bn_2)
-        maxpool_2 = TimeDistributed(MaxPooling1D(
-            pool_size=2, strides=2, data_format='channels_first'))(conv1d_4)
-        conv1d_5 = Conv1D(filters=256, kernel_size=3,
-                          activation='relu')(maxpool_2)
-        bn_3 = BatchNormalization()(conv1d_5)
-        conv1d_6 = Conv1D(filters=256, kernel_size=3,
-                          activation='relu')(bn_3)
-        maxpool_3 = TimeDistributed(MaxPooling1D(
-            pool_size=2, strides=2, data_format='channels_first'))(conv1d_6)
         lstm_1 = TimeDistributed(Bidirectional(
-            LSTM(units=300, return_sequences=True)))(maxpool_3)
+            LSTM(units=300, return_sequences=True)))(maxpool_1)
         lstm_2 = TimeDistributed(Bidirectional(LSTM(units=300)))(lstm_1)
         flatten = Flatten()(lstm_2)
-        dense_1 = Dense(256, activation='relu')(flatten)
+        dense_1 = Dense(128, activation='relu')(flatten)
         dropout = Dropout(0.1)(dense_1)
-        dense_2 = Dense(512, activation='relu')(dropout)
+        dense_2 = Dense(256, activation='tanh')(dropout)
         if multiclass:
             output = Dense(units=n_outputs, activation='softmax')(dense_2)
             model = Model(inputs=input, outputs=output)
