@@ -7,26 +7,33 @@ from tensorflow.keras import Model
 class CNNLSTM():
     early_stopping = tf.keras.callbacks.EarlyStopping(
         monitor="val_loss",
-        patience=30,
+        patience=25,
         restore_best_weights=True,
     )
 
     def __init__(self, n_features, n_length, n_outputs, multiclass=False):
         input = Input(shape=(1, n_length, n_features))
-        conv1d_1 = Conv1D(filters=64, kernel_size=3,
-                          activation='relu')(input)
+        conv1d_1 = Conv1D(filters=128, kernel_size=3,
+                          activation='tanh')(input)
         bn_1 = BatchNormalization()(conv1d_1)
-        conv1d_2 = Conv1D(filters=64, kernel_size=3,
-                          activation='relu')(bn_1)
+        conv1d_2 = Conv1D(filters=128, kernel_size=3,
+                          activation='tanh')(bn_1)
         maxpool_1 = TimeDistributed(MaxPooling1D(
             pool_size=2, strides=2, data_format='channels_first'))(conv1d_2)
+        conv1d_3 = Conv1D(filters=256, kernel_size=3,
+                          activation='tanh')(maxpool_1)
+        bn_2 = BatchNormalization()(conv1d_3)
+        conv1d_4 = Conv1D(filters=256, kernel_size=3,
+                          activation='tanh')(bn_2)
+        maxpool_2 = TimeDistributed(MaxPooling1D(
+            pool_size=2, strides=2, data_format='channels_first'))(conv1d_4)
         lstm_1 = TimeDistributed(Bidirectional(
-            LSTM(units=300, return_sequences=True)))(maxpool_1)
-        lstm_2 = TimeDistributed(Bidirectional(LSTM(units=300)))(lstm_1)
+            LSTM(units=350, return_sequences=True)))(maxpool_2)
+        lstm_2 = TimeDistributed(Bidirectional(LSTM(units=350)))(lstm_1)
         flatten = Flatten()(lstm_2)
-        dense_1 = Dense(128, activation='relu')(flatten)
+        dense_1 = Dense(256, activation='tanh')(flatten)
         dropout = Dropout(0.1)(dense_1)
-        dense_2 = Dense(256, activation='tanh')(dropout)
+        dense_2 = Dense(512, activation='tanh')(dropout)
         if multiclass:
             output = Dense(units=n_outputs, activation='softmax')(dense_2)
             model = Model(inputs=input, outputs=output)

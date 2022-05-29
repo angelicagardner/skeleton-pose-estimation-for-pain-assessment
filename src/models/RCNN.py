@@ -8,40 +8,38 @@ from keras.layers.advanced_activations import PReLU
 class RCNN():
     early_stopping = tf.keras.callbacks.EarlyStopping(
         monitor="val_loss",
-        patience=30,
+        patience=25,
         restore_best_weights=True,
     )
 
     def __init__(self, n_features, n_length, n_outputs, multiclass=False):
         input = Input(shape=(1, n_length, n_features))
-        conv1 = Conv1D(filters=128, kernel_size=1, padding='same')
+        conv1 = Conv1D(filters=128, kernel_size=1,
+                       padding='same', activation='tanh')
         stack1 = conv1(input)
         stack2 = BatchNormalization()(stack1)
         stack3 = PReLU()(stack2)
-        conv2 = Conv1D(filters=128, kernel_size=3,
-                       padding='same', kernel_initializer='he_normal')
+        conv2 = Conv1D(filters=256, kernel_size=3,
+                       padding='same', kernel_initializer='he_normal', activation='tanh')
         stack4 = conv2(stack3)
         stack5 = Concatenate()([stack1, stack4])
         stack6 = BatchNormalization()(stack5)
         stack7 = PReLU()(stack6)
-        conv3 = Conv1D(filters=128, kernel_size=3,
-                       padding='same')
-        stack8 = conv3(stack7)
-        stack9 = Concatenate()([stack1, stack8])
-        stack10 = BatchNormalization()(stack9)
-        stack11 = PReLU()(stack10)
         stack16 = TimeDistributed(MaxPooling1D(
-            (2), strides=2, data_format='channels_first'))(stack11)
+            (2), strides=2, data_format='channels_first'))(stack7)
         stack17 = Dropout(0.1)(stack16)
         flatten = Flatten()(stack17)
+        dense1 = Dense(256, activation='tanh')(flatten)
+        dropout_1 = Dropout(0.1)(dense1)
+        dense2 = Dense(512, activation='tanh')(dropout_1)
         if multiclass:
-            output = Dense(units=n_outputs, activation='softmax')(flatten)
+            output = Dense(units=n_outputs, activation='softmax')(dense2)
             model = Model(inputs=input, outputs=output)
             model.compile(loss='categorical_crossentropy', optimizer=tf.keras.optimizers.Nadam(learning_rate=0.0001), metrics=['accuracy', tf.keras.metrics.AUC(
             ), tf.keras.metrics.Precision(), tf.keras.metrics.Recall(), tfa.metrics.F1Score(num_classes=n_outputs, average='macro')])
             self.model = model
         else:
-            output = Dense(units=n_outputs, activation='sigmoid')(flatten)
+            output = Dense(units=n_outputs, activation='sigmoid')(dense2)
             model = Model(inputs=input, outputs=output)
             model.compile(loss='binary_crossentropy', optimizer=tf.keras.optimizers.Nadam(learning_rate=0.0001), metrics=['accuracy', tf.keras.metrics.AUC(
             ), tf.keras.metrics.Precision(), tf.keras.metrics.Recall(), tfa.metrics.F1Score(num_classes=n_outputs, average='macro')])
