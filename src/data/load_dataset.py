@@ -122,11 +122,13 @@ def load_dataset(modality, nopain=True, binary=False, fusion=False, level=False,
     return X_train, X_test, y_train, y_test
 
 
-def load_fusioned_dataset(nopain=True, binary=False, level=False):
+def load_fusioned_dataset(nopain=True, binary=False, level=False, only_minority=False):
     body_train_filepath = data_dir / 'processed' / 'train' / 'skeleton'
     body_test_filepath = data_dir / 'processed' / 'test' / 'skeleton'
     face_train_filepath = data_dir / 'processed' / 'train' / 'AUs'
     face_test_filepath = data_dir / 'processed' / 'test' / 'AUs'
+    if only_minority:
+        nr_mild = 0
     # 1. Load train data
     X = list()
     y = list()
@@ -136,6 +138,11 @@ def load_fusioned_dataset(nopain=True, binary=False, level=False):
             if not nopain:
                 if body_labels[0] == 'No Pain':
                     continue
+            if only_minority:
+                if (body_labels[0] == 'Mild' or body_labels[0] == 'Lower Body') and nr_mild > 2:
+                    continue
+                elif (body_labels[0] == 'Mild' or body_labels[0] == 'Lower Body'):
+                    nr_mild += 1
             has_equivalent_face_file = False
             for second_file in face_train_filepath.iterdir():
                 if second_file.is_file() and second_file.name.endswith('.csv') and second_file.name == file.name:
@@ -171,6 +178,11 @@ def load_fusioned_dataset(nopain=True, binary=False, level=False):
             if not nopain:
                 if body_labels[0] == 'No Pain':
                     continue
+            if only_minority:
+                if (body_labels[0] == 'Mild' or body_labels[0] == 'Lower Body') and nr_mild > 2:
+                    continue
+                elif (body_labels[0] == 'Mild' or body_labels[0] == 'Lower Body'):
+                    nr_mild += 1
             body_x = body_x.to_numpy()
             has_equivalent_face_file = False
             for second_file in face_test_filepath.iterdir():
