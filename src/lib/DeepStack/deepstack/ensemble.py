@@ -112,9 +112,9 @@ class DirichletEnsemble(Ensemble):
                                      for i in range(self._nmembers)]), axis=0)
             ensemble_score = _calculate_metric(val_classes, preds)
             ensemble_accuracy = _calculate_metric(
-                val_classes, preds, accuracy_score)
+                val_classes, preds, metrics.accuracy_score)
             ensemble_prf1 = _calculate_metric(
-                val_classes, preds, precision_recall_fscore_support)
+                val_classes, preds, metrics.precision_recall_fscore_support)
             ensemble_p = ensemble_prf1[0]
             ensemble_r = ensemble_prf1[1]
             ensemble_f1 = ensemble_prf1[2]

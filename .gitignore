@@ -89,3 +89,5 @@ target/
 
 /models/OpenFace
 /models/posenet
+
+/models/saved/*.h5
