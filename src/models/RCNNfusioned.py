@@ -53,7 +53,7 @@ class RCNN_fusioned():
         dropout_2 = Dropout(0.1)(dense1_2)
         dense2_2 = Dense(512, activation='tanh')(dropout_2)
 
-        concat = Concatenate()([dense2_2, flatten_2])
+        concat = Concatenate()([dense2_1, dense2_2])
 
         if multiclass:
             output = Dense(units=n_outputs, activation='softmax')(concat)
