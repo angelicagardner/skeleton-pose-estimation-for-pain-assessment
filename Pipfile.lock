@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "4e5963c8b9de3341c1811100bc16e9f9e56edc6deaafc6a9f6813e346a2a5dcb"
+            "sha256": "85936796caad1667005ed47a19665603e70e3e0f821aef8b1a8605328138f542"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -396,11 +396,11 @@
         },
         "cookiecutter": {
             "hashes": [
-                "sha256:6b9a4d72882e243be077a7397d0f1f76fe66cf3df91f3115dbb5330e214fa457",
-                "sha256:f8671531fa96ab14339d0c59b4f662a4f12a2ecacd94a0f70a3500843da588e2"
+                "sha256:9f3ab027cec4f70916e28f03470bdb41e637a3ad354b4d65c765d93aad160022",
+                "sha256:f3982be8d9c53dac1261864013fdec7f83afd2e42ede6f6dd069c5e149c540d5"
             ],
             "index": "pypi",
-            "version": "==1.7.3"
+            "version": "==2.1.1"
         },
         "coverage": {
             "hashes": [
@@ -2127,11 +2127,11 @@
         },
         "setuptools": {
             "hashes": [
-                "sha256:d1746e7fd520e83bbe210d02fff1aa1a425ad671c7a9da7d246ec2401a087198",
-                "sha256:e7d11f3db616cda0751372244c2ba798e8e56a28e096ec4529010b803485f3fe"
+                "sha256:990a4f7861b31532871ab72331e755b5f14efbe52d336ea7f6118144dd478741",
+                "sha256:c1848f654aea2e3526d17fc3ce6aeaa5e7e24e66e645b5be2171f3f6b4e5a178"
             ],
             "markers": "python_version >= '3.7'",
-            "version": "==62.3.3"
+            "version": "==62.6.0"
         },
         "shap": {
             "hashes": [
@@ -2273,7 +2273,7 @@
         },
         "src": {
             "editable": true,
-            "file": "file:///Users/mnktech/Documents/GitHub/masters-thesis"
+            "file": "file:///Users/mnktech/Documents/GitHub/skeleton-pose-estimation-for-pain-assessment"
         },
         "stack-data": {
             "hashes": [
@@ -3006,11 +3006,11 @@
         },
         "setuptools": {
             "hashes": [
-                "sha256:d1746e7fd520e83bbe210d02fff1aa1a425ad671c7a9da7d246ec2401a087198",
-                "sha256:e7d11f3db616cda0751372244c2ba798e8e56a28e096ec4529010b803485f3fe"
+                "sha256:990a4f7861b31532871ab72331e755b5f14efbe52d336ea7f6118144dd478741",
+                "sha256:c1848f654aea2e3526d17fc3ce6aeaa5e7e24e66e645b5be2171f3f6b4e5a178"
             ],
             "markers": "python_version >= '3.7'",
-            "version": "==62.3.3"
+            "version": "==62.6.0"
         },
         "six": {
             "hashes": [
