@@ -6,7 +6,6 @@
 #
 
 -i https://pypi.org/simple
--e file:///Users/mnktech/Documents/GitHub/skeleton-pose-estimation-for-pain-assessment
 absl-py==1.0.0
 aiohttp-retry==2.4.6
 aiohttp==3.8.1
