@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "85936796caad1667005ed47a19665603e70e3e0f821aef8b1a8605328138f542"
+            "sha256": "95645150bb9d35861e7d111d90f745640c6c0bfe545c4fddc4c2cabea38310b1"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -2270,10 +2270,6 @@
             ],
             "index": "pypi",
             "version": "==1.1.5"
-        },
-        "src": {
-            "editable": true,
-            "file": "file:///Users/mnktech/Documents/GitHub/skeleton-pose-estimation-for-pain-assessment"
         },
         "stack-data": {
             "hashes": [
