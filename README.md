@@ -1,27 +1,29 @@
-# Master Thesis Project
-==============================
+# Spot the Pain: Exploring the Application of Skeleton Pose Estimation for Automated Pain Assessment
 
-This project contains the implementation described in [Spot the Pain: Exploring the Application of Skeleton Pose Estimation for Automated Pain Assessment](), which I carried out in the spring semester of 2022 as part of my Master's degree project at Linnaeus University.
+![License](https://img.shields.io/badge/license-MIT-38bdf8?style=flat-square)
+
+This repository contains the code implementation for [my Master's Thesis project](https://www.diva-portal.org/smash/record.jsf%3Fpid%3Ddiva2:1673390) at Linnaeus University (2022).
+
+The research explores how body gestures (skeleton data) can be used as a primary or complementary modality to facial expressions for objective pain recognition and localization.
+
+**📄 [Read the full thesis (PDF)](./docs/spot_the_pain_thesis.pdf)**
+
+---
 
 ## Abstract
 
-> Automated pain assessment is emerging as an essential part of pain management in areas such as healthcare, rehabilitation, sports and fitness. These automated systems are based on machine learning applications and can provide reliable, objective and cost-effective benefits. To enable an automated approach, at least one channel of sensory input, known as modality, must be available to the system. So far, most studies of automated pain assessment have focused on facial expressions or physiological signals, and although body gestures are considered to be indicators of pain, not much attention has been paid to this modality. Using skeleton pose estimation, we can model body gestures and investigate how body movement information affects pain assessment performance in different approaches. In this study, we explored approaches to pain assessment using skeleton pose estimation for three objectives: pain recognition, pain intensity estimation, and pain area classification. Because pain is a complex experience and is often expressed across multiple modalities, we analysed both unimodal approaches using only body data and bimodal approaches using skeleton pose estimation with facial expressions and head pose. In our experiments, we trained models based on two deep learning architectures: a hybrid CNN-BiLSTM and a recurrent CNN (RCNN), on a real-world dataset consisting of video recordings of people performing an overhead deep squat exercise. We also investigated bimodal fusion of body and face modalities in three different strategies: early fusion, late fusion and ensemble learning. Although our results are still preliminary, they show promising indications and possible future improvements. The best performance was obtained with ensemble for pain recognition (AUC 0.71), unimodal body CNN-BiLSTM for pain intensity estimation (AUC 0.75) and late fusion of body and face modalities using RCNN for pain area classification (AUC 0.75). Our experimental results demonstrate the feasibility of using skeleton pose estimation to represent body modality, the importance of incorporating body movements into automated pain assessment, and the exploration of the previously understudied assessment objective of localising pain areas in the body.
+Automated pain assessment is an essential part of modern healthcare and rehabilitation. While most research focuses on facial expressions, this study investigates the understudied modality of body gestures.
 
-## Dataset 
+By using skeleton pose estimation, we modeled body movements and analyzed their impact on:
 
-I used a private dataset consisting of 6-second video recordings with one person performing a overhead deep squat. The whole body and face are visible, the person looks into the camera from the front.
+1. Pain Recognition (Detection)
+2. Pain Intensity Estimation (Levels)
+3. Pain Area Classification (Localization)
 
-From the videos, [PoseNet](https://github.com/tensorflow/tfjs-models/tree/master/posenet) was used to detect the pose and extract a confidence score of the pose and an array of 17 keypoints. Each keypoint contains the x-position, the y-position and the confidence score. [OpenFace](https://github.com/cmusatyalab/openface) was used for face feature recognition and action unit (AU) extraction. OpenFace is able to recognise a subset of AUs: 1, 2, 4, 5, 6, 7, 9, 10, 12, 14, 15, 17, 20, 23, 25, 26, 28 and 45. Out of those, OpenFace can detect all but one of the declared PSPI measure of pain intensity: **AU4 + (AU6 k AU7) + (AU9 k AU10) + AU43**. The missing action unit is AU43 (eye closure).
-
-The file ```make_dataset.py``` was run once to load the CSV file output by PoseNet and OpenFace to create the final dataset used in this project.
-
-## Usage
-
-...
+Through unimodal (body-only) and bimodal (body + face) approaches using **CNN-BiLSTM** and **RCNN** architectures, we demonstrated the feasibility of using skeleton data to enhance automated assessment.
 
 ## Project Organization
 
-------------
     ├── Makefile           <- Makefile with commands like `make data` or `make train`
     ├── README.md          <- The top-level README for developers using this project.
     ├── data
@@ -50,10 +52,92 @@ The file ```make_dataset.py``` was run once to load the CSV file output by PoseN
     │   │   └── time_series_augmentation
     │   │
     │   ├── models         <- Python classes to use for training models and save to make predictions
---------
 
-<p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
+## 🏛 System Architecture & Fusion Strategies
 
-## Note 
+The project investigated how to best combine facial features (Action Units) with body keypoints.
 
-This repository is a hands-on part of a thesis project, and is therefore short-lived without long-term maintenance.
+```mermaid
+---
+title: Fusion Pipeline
+---
+graph TD
+    subgraph Modalities
+        A[Video Input] --> B[PoseNet: 17 Body Keypoints]
+        A --> C[OpenFace: Facial Action Units]
+    end
+
+    subgraph Strategies
+        B --> D{Fusion Logic}
+        C --> D
+        D -->|Early| E[Input Concatenation]
+        D -->|Late| F[Score Averaging]
+        D -->|Ensemble| G[Weighted Model Voting]
+    end
+
+    E --> H[Deep Learning Model]
+    F --> H
+    G --> H
+    H --> I[Recognition / Intensity / Area]
+```
+
+## 🛠 Tech Stack (2022)
+
+- **Pose Estimation**: [PoseNet](https://github.com/tensorflow/tfjs-models/tree/master/posenet) (17 keypoints + confidence scores).
+- **Facial Analysis**: [OpenFace](https://github.com/cmusatyalab/openface) (Action Units for PSPI measures).
+- **Architectures**: Hybrid CNN-BiLSTM and Recurrent CNN (RCNN).
+- **Data Engineering**: [Cookiecutter Data Science](https://drivendata.github.io/cookiecutter-data-science/) for reproducible project structure.
+
+### Pain Intensity Metric (PSPI)
+
+The system aimed to approximate the Prkachin and Solomon Pain Intensity (PSPI) scale:
+
+$$PSPI \approx AU4 + (AU6 \lor AU7) + (AU9 \lor AU10) + AU43$$
+
+> *(Note: AU43 was omitted due to OpenFace limitations in the 2022 setup).*
+
+## 📊 Experimental Results
+
+The models were trained on a private dataset of video recordings featuring overhead deep squat exercises. The dataset consisted of 6-second video recordings with one person performing a overhead deep squat. The whole body and face are visible, the person looks into the camera from the front. The file ```make_dataset.py``` was run once to load the CSV file output by PoseNet and OpenFace to create the final dataset used in this project.
+
+| Objective | Best Strategy | Metric (AUC) |
+| :--- | :--- | :--- |
+| Pain Recognition | Bimodal Ensemble | $0.71$ |
+| Intensity Estimation | Unimodal Body (CNN-BiLSTM) | $0.75$ |
+| Area Classification | Late Fusion (RCNN) | $0.75$ |
+
+## 🚀 Reflections (2026 Perspective)
+
+Looking back at this research four years later, the landscape of Pose Estimation and Multimodal Learning has evolved significantly. If I were to iterate on this today:
+
+- From CNN-BiLSTM to Graph Neural Networks (GNNs): Skeleton data is inherently a graph. Today, I would use ST-GNNs (Spatio-Temporal Graph Neural Networks) to better capture the anatomical dependencies between joints.
+- Transformers: I would explore Video Vision Transformers (ViT) for the bimodal fusion, using cross-attention mechanisms to let the model "decide" which modality (face or body) is more reliable for a specific frame.
+- Real-time Edge Deployment: With current hardware, the PoseNet-based inference could be moved entirely to the edge (e.g., using Wasm or CoreML) for real-time clinical feedback.
+
+---
+
+## License & Dataset Disclaimer
+
+This implementation code is licensed under the [MIT License](LICENSE). You are free to use, modify, and distribute the code for academic or professional purposes, provided that appropriate credit is given.
+
+**Important:** The dataset used in this research (video recordings of overhead deep squats) is **private** and is **not included** in this repository. 
+
+- Due to ethical constraints and privacy agreements with the participants, the raw video data and processed CSV files cannot be made public.
+- This repository is provided for architectural reference and transparency regarding the models and methodologies used in the thesis.
+
+## Changelog
+
+**[July 2022]** – Thesis published on DiVA.
+
+**[Feb 2026]** – Added thesis as PDF and updated README, then archived repository.
+
+## Citation
+
+```
+@misc{gardner2022spotthepain,
+  author       = {Angelica Hjelm Gardner},
+  title        = {Spot the Pain: Exploring the Application of Skeleton Pose Estimation for Automated Pain Assessment},
+  howpublished = {Master's Thesis, Linnaeus University},
+  year         = {2022}
+}
+```
